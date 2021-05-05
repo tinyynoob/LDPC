@@ -1,5 +1,4 @@
-﻿  freee.c
-  main.c
+﻿  main.c
 C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(86,40): warning C4047: '函式': 'int' 與 'int *' 間接取值的層級不同
 C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(86,33): warning C4024: 'searchIndex': 型式和實質參數 3 不同的類型
 C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(9,15): warning C4101: 'value': 未參考的區域變數
@@ -8,4 +7,3 @@ C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(150,6): warning C41
 C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(164,25): error C2198: 'abs': 呼叫的引數太少
   rand.c
   正在產生程式碼...
-C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\freee.c(5): warning C4716: 'freee': 必須傳回值

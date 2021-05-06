@@ -120,6 +120,7 @@ double input(short b)	//transform the binary bit b to modulated bit +-1 (BPSK) a
 	AWGN = gaussian();	//get a number from X~N(0,1)
 	AWGN_SNR = AWGN * sqrt(mean_of_AWGN_energy);
 	y = y + AWGN_SNR;
+	
 	return y;
 }
 double phi(double x)
@@ -164,4 +165,8 @@ void downUpdate(int cNum, int* cWeight, int* vWeight, int** V,int **down,int **u
 				magnitude += phi(abs());
 		}
 	}
+}
+
+int freee() {
+
 }

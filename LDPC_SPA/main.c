@@ -4,8 +4,8 @@
 int main()
 {
 	int n, i, j;
-	int cNum, vNum, * vWeight, * cWeight, ** V, ** C;	//to store the Tanner graph
-	double * check,*variable,**up,**down;	//to store the values and messages
+	int cNum, vNum, * vWeight, * cWeight, ** V, ** C,max_vWeight, max_cWeight;	//to store the Tanner graph
+	double * check,*variable,**q,**r;	//to store the values and messages
 	double sigma,value;
 	rand_init();
 	sigma = 1;
@@ -17,15 +17,18 @@ int main()
 		if (!fscanf(f, "%d %d", &vNum, &cNum))
 			printf("ERROR\n");
 		//printf("%d %d\n", vNum, cNum);
-		fscanf(f, "%d", &n); //no use
-		fscanf(f, "%d", &n); //no use
+
+		if(!fscanf(f, "%d", &max_vWeight))
+			printf("ERROR\n"); 
+		if (!fscanf(f, "%d", &max_cWeight))
+			printf("ERROR\n");
 
 		vWeight = malloc(sizeof(int) * vNum);	//vWeight[i] stores the number of edges from ith v-node 
 		cWeight = malloc(sizeof(int) * cNum);	//cWeight[i] stores the number of edges from ith c-node 
 		C = malloc(sizeof(int*) * vNum);	//C[i] stores the numbers of c-nodes connecting to ith v-node
 		V = malloc(sizeof(int*) * cNum);	//V[i] stores the numbers of v-nodes connecting to ith c-node
-		up = malloc(sizeof(double*) * vNum);
-		down = malloc(sizeof(double*) * cNum);
+		r = malloc(sizeof(double*) * vNum);
+		q = malloc(sizeof(double*) * cNum);
 		//note that the index starts from 0
 
 		for (i = 0; i < vNum; i++)
@@ -44,7 +47,7 @@ int main()
 					printf("ERROR\n");
 				C[i][j]--;		//modify so that index from 0
 			}
-			up[i] = malloc(sizeof(double) * vWeight[i]);
+			r[i] = malloc(sizeof(double) * vWeight[i]);
 		}
 		for (i = 0; i < cNum; i++)	//
 		{
@@ -55,7 +58,7 @@ int main()
 					printf("ERROR\n");
 				V[i][j]--;		//modify so that index from 0
 			}
-			down[i] = malloc(sizeof(double) * cWeight[i]);
+			q[i] = malloc(sizeof(double) * cWeight[i]);
 		}
 		fclose(f);
 		//printf("%d\n", V[2][2]);
@@ -64,7 +67,6 @@ int main()
 
 	check = malloc(sizeof(double) * cNum);
 	variable = malloc(sizeof(double) * vNum);
-
 	/*---------------initialization step-------------------*/
 	{
 		for (i = 0; i < vNum; i++)
@@ -73,20 +75,15 @@ int main()
 			variable[i] = 2 * variable[i] / sigma / sigma;
 			//printf("%.20lf\n", variable[i]);
 		}
+		for (i = 0; i < cNum; i++)
+			check[i] = 0;
 
 		for (i = 0; i < vNum; i++)
 			for (j = 0; j < vWeight[i]; j++)
-				up[i][j] = variable[i];		//up[i][j] is from v-node i to c-node C[i][j]
-
-		for (i = 0; i < cNum; i++)
-		{
-			check[i] = 0;
-			for (j = 0; j < cWeight[i]; j++)
 			{
-				n = searchIndex(i, C[i][j], vWeight, C);
-				check[i] += up[V[i][j]][n];
+				n = searchIndex(i, C[i][j],cWeight[C[i][j]],V);
+				q[C[i][j]][n] = variable[i];		//update q
 			}
-		}
 	}
 	/*---------------end initialization step-------------------*/
 
@@ -94,9 +91,8 @@ int main()
 	{
 		for (i = 0; i < vNum; i++)
 		{
-
+			/*L(r)=2atanh(product of tanh( 0.5*(L(r)) ) )*/
 		}
-		
 	}
 
 	
@@ -123,9 +119,8 @@ double input(short b)	//transform the binary bit b to modulated bit +-1 (BPSK) a
 	
 	return y;
 }
-double phi(double x)
-{
-	return -log(tanh(x/2));
+double phi(double x){
+	return -log(tanh(0.5*x));
 }
 double sgn(double x)
 {
@@ -143,28 +138,7 @@ int searchIndex(int start,int dest,int weight,int **N)
 		if (N[start][i] == dest)
 			return i;
 	}
-	return -1;
-}
-
-void cUpdate(int vNum, int *vWeight, int **C)
-{
-	int i, j;
-	
-	
-}
-void downUpdate(int cNum, int* cWeight, int* vWeight, int** V,int **down,int **up)
-{
-	int i,j,k;
-	double value=1,magnitude=0;
-	for (i = 0; i <cNum ; i++)
-	{
-		for (j = 0; j < cWeight[i]; j++)
-		{
-			down[i][V[i][j]];
-			for (k=0;;)
-				magnitude += phi(abs());
-		}
-	}
+	return -1;	//if ERROR
 }
 
 int freee() {

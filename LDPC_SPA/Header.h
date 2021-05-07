@@ -9,4 +9,6 @@ double phi(double);
 double sgn(double);
 int searchIndex(int, int, int, int**);
 void rUpdate(int, int, int*, int**, int**, double**, double**);
-int freee();
+void qUpdate(int, int, int*, int**, int**, double**, double**, double*, double*);
+void freee(int, int, int*, int*, int**, int**, double*, double*, double*, double**, double**);
+

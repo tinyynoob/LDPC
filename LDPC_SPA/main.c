@@ -6,7 +6,7 @@ int main()
 {
 	int n, i, j;
 	int cNum, vNum, * vWeight, * cWeight, ** V, ** C,max_vWeight, max_cWeight;	//to store the Tanner graph
-	double * check,*variable,**q,**r;	//to store the values and messages
+	double * binary,*variable,*Q,**q,**r;	//to store the values and messages
 	double sigma,value;
 	rand_init();
 	sigma = 1;
@@ -66,8 +66,9 @@ int main()
 	}
 	/*---------------------end reading the Tanner graph----------------------*/
 
-	check = malloc(sizeof(double) * cNum);
+	binary = malloc(sizeof(double) * vNum); 
 	variable = malloc(sizeof(double) * vNum);
+	Q = malloc(sizeof(double) * vNum);
 	/*---------------initialization step-------------------*/
 	{
 		for (i = 0; i < vNum; i++)
@@ -76,8 +77,7 @@ int main()
 			variable[i] = 2 * variable[i] / sigma / sigma;
 			//printf("%.20lf\n", variable[i]);
 		}
-		for (i = 0; i < cNum; i++)
-			check[i] = 0;
+
 
 		for (i = 0; i < vNum; i++)
 			for (j = 0; j < vWeight[i]; j++)
@@ -92,11 +92,20 @@ int main()
 	{
 		for (i = 0; i < cNum; i++)
 			rUpdate(i,cWeight[i],vWeight,V,C,q,r);
+		for (i = 0; i < vNum; i++)
+		{
+			qUpdate(i, vWeight[i], cWeight, V, C, q, r, Q, variable);
 
+			if (Q < 0)		//set the binary value of each v-node
+				binary = 1;
+			else
+				binary = 0;
+		}
 	}
 
 	
-	//freee();
+	//free the pointers and end
+	freee(vNum,cNum,vWeight,cWeight,V,C,binary,variable,Q,q,r);
 	system("pause");
 	return 0;
 }
@@ -142,12 +151,6 @@ int searchIndex(int start,int dest,int weight,int **N)	//given start and dest, f
 	return -1;	//if ERROR
 }
 
-void qUpdate()
-{
-	/*n = searchIndex(i, C[i][j],cWeight[C[i][j]],V);
-				q[C[i][j]][n] = variable[i];*/
-
-}
 void rUpdate(int start ,int weight, int *vWeight,int**V,int **C,double**q,double**r)
 {	/*L(r)=2atanh(product of tanh( 0.5*(L(q)) ) )*/
 	int i, j, n;
@@ -167,6 +170,44 @@ void rUpdate(int start ,int weight, int *vWeight,int**V,int **C,double**q,double
 	}
 }
 
-int freee() {
+void qUpdate(int start, int weight, int* cWeight, int** V, int** C, double**q,double**r,double *Q,double *variable)
+{
+	int i, j, n;
+	double ans;
+	ans = variable[start];
+	for (i = 0; i < weight; i++)	//update each Q[i]
+		ans += r[start][i];
+	Q[start] = ans;
 
+	for (i = 0; i < weight; i++)	//for each edge from start to C[start][i]
+	{
+		ans = Q[start];
+		n = searchIndex(start,C[start][i],cWeight[C[start][i]],V);
+		ans -= r[start][i];
+		q[C[start][i]][n] = ans;
+	}
+}
+
+void freee(int vNum,int cNum,int *vWeight,int *cWeight,int **V,int**C,double*binary,double*variable,double*Q,double**q,double**r)
+{
+	int i, j;
+	for (i = 0; i < vNum; i++)
+	{
+		free(C[i]);
+		free(r[i]);
+	}
+	for (i = 0; i < cNum; i++)
+	{
+		free(V[i]);
+		free(q[i]);
+	}
+	free(vWeight);
+	free(cWeight);
+	free(V);
+	free(C);
+	free(binary);
+	free(variable);
+	free(Q);
+	free(q);
+	free(r);
 }

@@ -1,4 +1,6 @@
 ﻿  main.c
+C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(100,15): warning C4047: '=': 'double *' 與 'int' 間接取值的層級不同
 C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(10,15): warning C4101: 'value': 未參考的區域變數
-C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(172): warning C4716: 'freee': 必須傳回值
+C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(174,9): warning C4101: 'j': 未參考的區域變數
+C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(192,9): warning C4101: 'j': 未參考的區域變數
   LDPC_SPA.vcxproj -> C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\Debug\LDPC_SPA.exe

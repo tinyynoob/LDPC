@@ -6,8 +6,8 @@ int main()
 {
 	int n, i, j,count_iteration;
 	int cNum, vNum, * vWeight, * cWeight, ** V, ** C;	//to store the Tanner graph
-	double *variable,*Q,*last_Q,**q,**r;	//to store the values and messages
-	short* binary,sum,flag;
+	double *variable,*Q,**q,**r;	//to store the values and messages
+	short* binary,*last_binary;		//to store the estimated codewords
 	double sigma;
 	rand_init();
 	sigma = 1;
@@ -45,7 +45,7 @@ int main()
 			{
 				if (!fscanf(f, "%d", C[i] + j))
 					printf("ERROR\n");
-				C[i][j]--;		//modify so that index from 0
+				C[i][j]--;		//modify so that index starts from 0
 			}
 			r[i] = malloc(sizeof(double) * vWeight[i]);
 		}
@@ -56,19 +56,18 @@ int main()
 			{
 				if (!fscanf(f, "%d", V[i] + j))
 					printf("ERROR\n");
-				V[i][j]--;		//modify so that index from 0
+				V[i][j]--;		//modify so that index starts from 0
 			}
 			q[i] = malloc(sizeof(double) * cWeight[i]);
 		}
 		fclose(f);
 		//printf("%d\n", V[2][2]);
 	}
-	/*---------------------end reading the Tanner graph----------------------*/
-
-	binary = malloc(sizeof(short) * vNum); 
+	/*---------------------end building the Tanner graph----------------------*/
+	binary = malloc(sizeof(short) * vNum);
+	last_binary = malloc(sizeof(short) * vNum);
 	variable = malloc(sizeof(double) * vNum);
 	Q = malloc(sizeof(double) * vNum);
-	last_Q = malloc(sizeof(double) * vNum);
 	/*---------------initialization step-------------------*/
 	{
 		printf("LDPC log-SPA\n\n initial y_i values:\n");
@@ -77,7 +76,7 @@ int main()
 			variable[i] = input(0);	//y_i	default codeword: 00000~
 			variable[i] = 2 * variable[i] / sigma / sigma;
 			printf("%.6lf\t", variable[i]);
-			last_Q[i] = variable[i];	//
+			last_binary[i] = 5;	// arbitrarily set but cant be 0 or 1
 		}
 		printf("\n\n");
 
@@ -90,6 +89,7 @@ int main()
 	}
 	/*---------------end initialization step-------------------*/
 
+
 	/*---------------iteration step-------------------*/
 	count_iteration = 0;
 	while (1)
@@ -100,7 +100,6 @@ int main()
 		for (i = 0; i < vNum; i++)
 		{
 			qUpdate(i, vWeight[i], cWeight, V, C, q, r, Q, variable);
-
 			if (Q[i] < 0)		//set the binary value of each v-node
 				binary[i] = 1;
 			else
@@ -115,32 +114,14 @@ int main()
 		printf("\n");
 
 		/*--------------check the algorithm ending condition--------------*/
-		flag = 0;	//if an error is found, set flag to 1
-		for (i = 0; i < cNum; i++)
-		{
-			sum = 0;
-			for (j = 0; j < cWeight[i]; j++)
-				sum = sum^binary[V[i][j]];		//xor operation
-			if (sum)	//if an error is found
-			{
-				flag = 1;
-				break;
-			}
-		}
-		if (!flag)
+		if ( end_condition_check(cNum, cWeight, binary, V) )	//check if cH^{T}==0
 			break;
 
-		flag = 0;
-		for (i = 0; i < vNum; i++)	//if *Q is the same as *last_Q, then end the algorithm
-		{
-			if(last_Q[i]-Q[i]!=0)
-			{
-				flag = 1;
-				break;
-			}
-		}
-		if (!flag)
+		if ( repeat_result_check(vNum, last_binary, binary) )	//check if the result repeats
 			break;
+
+		for (i = 0; i < vNum; i++)		//update last_binary
+			last_binary[i] = binary[i];
 	}
 	/*---------------end iteration step-------------------*/
 
@@ -151,7 +132,7 @@ int main()
 	printf("\n\n");
 
 	//free the pointers and end
-	freee(vNum, cNum, vWeight, cWeight, V, C, binary, variable, Q, last_Q , q, r);
+	freee(vNum, cNum, vWeight, cWeight, V, C, binary, last_binary, variable, Q,  q, r);
 	system("pause");
 	return 0;
 }
@@ -217,7 +198,7 @@ void rUpdate(int start ,int weight, int *vWeight,int**V,int **C,double**q,double
 
 void qUpdate(int start, int weight, int* cWeight, int** V, int** C, double**q,double**r,double *Q,double *variable)
 {
-	int i, j, n;
+	int i, n;
 	double ans;
 	ans = variable[start];
 	for (i = 0; i < weight; i++)	//update each Q[i]
@@ -233,7 +214,32 @@ void qUpdate(int start, int weight, int* cWeight, int** V, int** C, double**q,do
 	}
 }
 
-void freee(int vNum,int cNum,int *vWeight,int *cWeight,int **V,int**C,short*binary,double*variable,double*Q,double* last_Q,double**q,double**r)
+int end_condition_check(int cNum,int *cWeight,short *binary,int **V)		//if the ending codition is satisfied, return 1
+{
+	int i,j, sum;
+	for (i = 0; i < cNum;i++)
+	{
+		sum = 0;
+		for (j=0;j<cWeight[i];j++)
+		{
+			sum = sum ^ binary[V[i][j]];	//xor operation
+			if (sum)
+				return 0;	//if a c-node doesn't sum to 0, return 0
+		}
+	}
+	return 1;	//no error is found
+}
+
+int repeat_result_check(int vNum,short* last_binary,short*binary)
+{
+	int i;
+	for (i = 0; i < vNum; i++)	//if we have identical estimated codeword as the last iteration, then end the algorithm
+		if (last_binary[i] - binary[i] != 0)
+			return 0;
+	return 1;
+}
+
+void freee(int vNum,int cNum,int *vWeight,int *cWeight,int **V,int**C,short*binary, short* last_binary,double*variable,double*Q,double**q,double**r)
 {
 	int i, j;
 	for (i = 0; i < vNum; i++)
@@ -253,7 +259,7 @@ void freee(int vNum,int cNum,int *vWeight,int *cWeight,int **V,int**C,short*bina
 	free(binary);
 	free(variable);
 	free(Q);
-	free(last_Q);
+	free(last_binary);
 	free(q);
 	free(r);
 }

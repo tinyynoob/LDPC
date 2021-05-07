@@ -75,7 +75,7 @@ int main()
 		printf("LDPC log-SPA\n\n initial y_i values:\n");
 		for (i = 0; i < vNum; i++)
 		{
-			variable[i] = input(0);	//y_i	default codeword: 00000~
+			variable[i] = input(0);	//y_i
 			variable[i] = 2 * variable[i] / sigma / sigma;
 			printf("%.6lf\t", variable[i]);
 		}
@@ -90,7 +90,6 @@ int main()
 	}
 	/*---------------end initialization step-------------------*/
 
-	/*---------------iteration step-------------------*/
 	count_iteration = 0;
 	while (1)
 	{
@@ -133,7 +132,6 @@ int main()
 			break;
 		}
 	}
-	/*---------------end iteration step-------------------*/
 
 	printf("the estimated codeword:\n");
 	for (i = 0; i < vNum; i++)

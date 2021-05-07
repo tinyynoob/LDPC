@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="freee.c">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
     <ClCompile Include="main.c">
       <Filter>來源檔案</Filter>
     </ClCompile>

@@ -1,5 +1,6 @@
-#include"Header.h"
 #include"rand.h"
+#include"Header.h"
+
 
 int main()
 {
@@ -89,10 +90,9 @@ int main()
 
 	//while (1)
 	{
-		for (i = 0; i < vNum; i++)
-		{
-			/*L(r)=2atanh(product of tanh( 0.5*(L(r)) ) )*/
-		}
+		for (i = 0; i < cNum; i++)
+			rUpdate(i,cWeight[i],vWeight,V,C,q,r);
+
 	}
 
 	
@@ -130,15 +130,41 @@ double sgn(double x)
 		return 1;
 	return -1;
 }
-int searchIndex(int start,int dest,int weight,int **N)
-{
+
+int searchIndex(int start,int dest,int weight,int **N)	//given start and dest, find the number of start in dest's list
+{														//thus we need weight of dest and the connecting node list of the dest
 	int i;
 	for (i = 0; i < weight; i++)
 	{
-		if (N[start][i] == dest)
+		if (N[dest][i] == start)
 			return i;
 	}
 	return -1;	//if ERROR
+}
+
+void qUpdate()
+{
+	/*n = searchIndex(i, C[i][j],cWeight[C[i][j]],V);
+				q[C[i][j]][n] = variable[i];*/
+
+}
+void rUpdate(int start ,int weight, int *vWeight,int**V,int **C,double**q,double**r)
+{	/*L(r)=2atanh(product of tanh( 0.5*(L(q)) ) )*/
+	int i, j, n;
+	double ans;
+	for (i = 0; i < weight; i++)	//for each edge from start to V[start][i]
+	{
+		ans = 1;
+		for (j = 0; j < weight; j++)
+		{
+			if (j == i)
+				continue;
+			ans = ans * tanh(0.5 * q[start][j]);
+		}
+		ans = 2 * atanh(ans);
+		n = searchIndex(start,V[start][i],vWeight[V[start][i]],C);
+		r[V[start][i]][n] = ans;
+	}
 }
 
 int freee() {

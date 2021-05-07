@@ -139,7 +139,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="freee.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="rand.c" />
   </ItemGroup>

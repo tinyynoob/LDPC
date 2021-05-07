@@ -5,10 +5,10 @@
 int main()
 {
 	int n, i, j,count_iteration;
-	int cNum, vNum, * vWeight, * cWeight, ** V, ** C,max_vWeight, max_cWeight;	//to store the Tanner graph
-	double *variable,*Q,**q,**r;	//to store the values and messages
+	int cNum, vNum, * vWeight, * cWeight, ** V, ** C;	//to store the Tanner graph
+	double *variable,*Q,*last_Q,**q,**r;	//to store the values and messages
 	short* binary,sum,flag;
-	double sigma,value;
+	double sigma;
 	rand_init();
 	sigma = 1;
 
@@ -20,10 +20,8 @@ int main()
 			printf("ERROR\n");
 		//printf("%d %d\n", vNum, cNum);
 
-		if(!fscanf(f, "%d", &max_vWeight))
-			printf("ERROR\n"); 
-		if (!fscanf(f, "%d", &max_cWeight))
-			printf("ERROR\n");
+		fscanf(f, "%d", &n);	//no use
+		fscanf(f, "%d", &n);	//no use
 
 		vWeight = malloc(sizeof(int) * vNum);	//vWeight[i] stores the number of edges from ith v-node 
 		cWeight = malloc(sizeof(int) * cNum);	//cWeight[i] stores the number of edges from ith c-node 
@@ -70,6 +68,7 @@ int main()
 	binary = malloc(sizeof(short) * vNum); 
 	variable = malloc(sizeof(double) * vNum);
 	Q = malloc(sizeof(double) * vNum);
+	last_Q = malloc(sizeof(double) * vNum);
 	/*---------------initialization step-------------------*/
 	{
 		printf("LDPC log-SPA\n\n initial y_i values:\n");
@@ -78,6 +77,7 @@ int main()
 			variable[i] = input(0);	//y_i	default codeword: 00000~
 			variable[i] = 2 * variable[i] / sigma / sigma;
 			printf("%.6lf\t", variable[i]);
+			last_Q[i] = variable[i];	//
 		}
 		printf("\n\n");
 
@@ -115,7 +115,7 @@ int main()
 		printf("\n");
 
 		/*--------------check the algorithm ending condition--------------*/
-		flag = 0;	//if an error is found, set flag 1
+		flag = 0;	//if an error is found, set flag to 1
 		for (i = 0; i < cNum; i++)
 		{
 			sum = 0;
@@ -128,20 +128,30 @@ int main()
 			}
 		}
 		if (!flag)
-		{
-			printf("--------------algorithm ends--------------\n\n");
 			break;
+
+		flag = 0;
+		for (i = 0; i < vNum; i++)	//if *Q is the same as *last_Q, then end the algorithm
+		{
+			if(last_Q[i]-Q[i]!=0)
+			{
+				flag = 1;
+				break;
+			}
 		}
+		if (!flag)
+			break;
 	}
 	/*---------------end iteration step-------------------*/
 
+	printf("--------------algorithm ends--------------\n\n");
 	printf("the estimated codeword:\n");
 	for (i = 0; i < vNum; i++)
 		printf("%d  ", binary[i]);
 	printf("\n\n");
 
 	//free the pointers and end
-	freee(vNum,cNum,vWeight,cWeight,V,C,binary,variable,Q,q,r);
+	freee(vNum, cNum, vWeight, cWeight, V, C, binary, variable, Q, last_Q , q, r);
 	system("pause");
 	return 0;
 }
@@ -223,7 +233,7 @@ void qUpdate(int start, int weight, int* cWeight, int** V, int** C, double**q,do
 	}
 }
 
-void freee(int vNum,int cNum,int *vWeight,int *cWeight,int **V,int**C,short*binary,double*variable,double*Q,double**q,double**r)
+void freee(int vNum,int cNum,int *vWeight,int *cWeight,int **V,int**C,short*binary,double*variable,double*Q,double* last_Q,double**q,double**r)
 {
 	int i, j;
 	for (i = 0; i < vNum; i++)
@@ -243,6 +253,7 @@ void freee(int vNum,int cNum,int *vWeight,int *cWeight,int **V,int**C,short*bina
 	free(binary);
 	free(variable);
 	free(Q);
+	free(last_Q);
 	free(q);
 	free(r);
 }

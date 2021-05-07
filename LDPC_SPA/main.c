@@ -4,7 +4,8 @@
 
 int main()
 {
-	int n, i, j,count_iteration;
+	FILE* f;
+	int n, i, j,count_iteration,count_loop;
 	int cNum, vNum, * vWeight, * cWeight, ** V, ** C;	//to store the Tanner graph
 	double *variable,*Q,**q,**r;	//to store the values and messages
 	short* binary,*last_binary;		//to store the estimated codewords
@@ -14,7 +15,6 @@ int main()
 
 	/*---------------------read alist and build the Tanner graph----------------------*/
 	{	
-		FILE* f;
 		f = fopen("./alist.txt", "r");
 		if (!fscanf(f, "%d %d", &vNum, &cNum))
 			printf("ERROR\n");
@@ -68,69 +68,77 @@ int main()
 	last_binary = malloc(sizeof(short) * vNum);
 	variable = malloc(sizeof(double) * vNum);
 	Q = malloc(sizeof(double) * vNum);
-	/*---------------initialization step-------------------*/
+	f = fopen("./analysis.csv", "w");
+	for (count_loop = 0; count_loop < 10000; count_loop++)
 	{
-		printf("LDPC log-SPA\n\n initial y_i values:\n");
-		for (i = 0; i < vNum; i++)
+		/*---------------initialization step-------------------*/
 		{
-			variable[i] = input(0);	//y_i	default codeword: 00000~
-			variable[i] = 2 * variable[i] / sigma / sigma;
-			printf("%.6lf\t", variable[i]);
-			last_binary[i] = 5;	// arbitrarily set but cant be 0 or 1
+			printf("LDPC log-SPA\n\n initial y_i values:\n");
+			for (i = 0; i < vNum; i++)
+			{
+				variable[i] = input(0);	//y_i	default codeword: 00000~
+				variable[i] = 2 * variable[i] / sigma / sigma;
+				printf("%.6lf\t", variable[i]);
+				last_binary[i] = 5;	// arbitrarily set but cant be 0 or 1
+			}
+			printf("\n\n");
+
+			for (i = 0; i < vNum; i++)
+				for (j = 0; j < vWeight[i]; j++)
+				{
+					n = searchIndex(i, C[i][j], cWeight[C[i][j]], V);
+					q[C[i][j]][n] = variable[i];		//update q
+				}
 		}
+		/*---------------end initialization step-------------------*/
+
+
+		/*---------------iteration step-------------------*/
+		count_iteration = 0;
+		while (1)
+		{
+			count_iteration++;
+			for (i = 0; i < cNum; i++)
+				rUpdate(i, cWeight[i], vWeight, V, C, q, r);
+			for (i = 0; i < vNum; i++)
+			{
+				qUpdate(i, vWeight[i], cWeight, V, C, q, r, Q, variable);
+				if (Q[i] < 0)		//set the binary value of each v-node
+					binary[i] = 1;
+				else
+					binary[i] = 0;
+			}
+			printf(" %dth iteration:\n", count_iteration);
+			for (i = 0; i < vNum; i++)
+				printf("%.6lf\t", Q[i]);
+			printf("\n");
+			for (i = 0; i < vNum; i++)
+				printf("%d\t\t", binary[i]);
+			printf("\n");
+
+			/*--------------check the algorithm ending condition--------------*/
+			if (end_condition_check(cNum, cWeight, binary, V))	//check if cH^{T}==0
+				break;
+
+			if (repeat_result_check(vNum, last_binary, binary))	//check if the result repeats
+				break;
+
+			for (i = 0; i < vNum; i++)		//update last_binary
+				last_binary[i] = binary[i];
+		}
+		/*---------------end iteration step-------------------*/
+
+		printf("--------------algorithm ends--------------\n\n");
+		printf("the estimated codeword:\n");
+		for (i = 0; i < vNum; i++)
+			printf("%d  ", binary[i]);
 		printf("\n\n");
 
 		for (i = 0; i < vNum; i++)
-			for (j = 0; j < vWeight[i]; j++)
-			{
-				n = searchIndex(i, C[i][j],cWeight[C[i][j]],V);
-				q[C[i][j]][n] = variable[i];		//update q
-			}
+			fprintf(f,"%d,",binary[i]);
+		fprintf(f,"\n");
 	}
-	/*---------------end initialization step-------------------*/
-
-
-	/*---------------iteration step-------------------*/
-	count_iteration = 0;
-	while (1)
-	{
-		count_iteration++;
-		for (i = 0; i < cNum; i++)
-			rUpdate(i,cWeight[i],vWeight,V,C,q,r);
-		for (i = 0; i < vNum; i++)
-		{
-			qUpdate(i, vWeight[i], cWeight, V, C, q, r, Q, variable);
-			if (Q[i] < 0)		//set the binary value of each v-node
-				binary[i] = 1;
-			else
-				binary[i] = 0;
-		}
-		printf(" %dth iteration:\n",count_iteration);
-		for (i = 0; i < vNum; i++)
-			printf("%.6lf\t", Q[i]);
-		printf("\n");
-		for (i = 0; i < vNum; i++)
-			printf("%d\t\t", binary[i]);
-		printf("\n");
-
-		/*--------------check the algorithm ending condition--------------*/
-		if ( end_condition_check(cNum, cWeight, binary, V) )	//check if cH^{T}==0
-			break;
-
-		if ( repeat_result_check(vNum, last_binary, binary) )	//check if the result repeats
-			break;
-
-		for (i = 0; i < vNum; i++)		//update last_binary
-			last_binary[i] = binary[i];
-	}
-	/*---------------end iteration step-------------------*/
-
-	printf("--------------algorithm ends--------------\n\n");
-	printf("the estimated codeword:\n");
-	for (i = 0; i < vNum; i++)
-		printf("%d  ", binary[i]);
-	printf("\n\n");
-
+	fclose(f);
 	//free the pointers and end
 	freee(vNum, cNum, vWeight, cWeight, V, C, binary, last_binary, variable, Q,  q, r);
 	system("pause");
@@ -148,7 +156,6 @@ double input(short b)	//transform the binary bit b to modulated bit +-1 (BPSK) a
 		y = -1;
 	else
 		y = 1;
-	
 	AWGN = gaussian();	//get a number from X~N(0,1)
 	AWGN_SNR = AWGN * sqrt(mean_of_AWGN_energy);
 	y = y + AWGN_SNR;

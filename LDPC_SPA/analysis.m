@@ -1,6 +1,5 @@
 clear all;
-M=csvread('analysis.csv');
-M=int16(M');
-s=sum(M);
-s=(s~=0);
-error_rate=sum(s)/length(M);
+M=int16(readmatrix('analysis.csv'));
+M=M';
+s=logical(sum(M));
+error_rate=sum(s)/length(s);

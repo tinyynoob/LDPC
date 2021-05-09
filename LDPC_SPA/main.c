@@ -9,9 +9,10 @@ int main()
 	int cNum, vNum, * vWeight, * cWeight, ** V, ** C;	//to store the Tanner graph
 	double *variable,*Q,**q,**r;	//to store the values and messages
 	short* binary,*last_binary;		//to store the estimated codewords
-	double sigma;
+	double sigma,SNR;
 	rand_init();
 	sigma = 1;
+	SNR = 3;
 
 	/*---------------------read alist and build the Tanner graph----------------------*/
 	{	
@@ -77,7 +78,7 @@ int main()
 			printf("LDPC log-SPA\n\n initial y_i values:\n");
 			for (i = 0; i < vNum; i++)
 			{
-				variable[i] = input(0);	//y_i	default codeword: 00000~
+				variable[i] = input(0,SNR);	//y_i	default codeword: 00000~
 				variable[i] = 2 * variable[i] / sigma / sigma;
 				printf("%.6lf\t", variable[i]);
 				last_binary[i] = 5;	// arbitrarily set but cant be 0 or 1
@@ -147,11 +148,11 @@ int main()
 	return 0;
 }
 
-double input(short b)	//transform the binary bit b to modulated bit +-1 (BPSK) and add noise
+double input(short b,double SNR)	//transform the binary bit b to modulated bit +-1 (BPSK) and add noise
 {
 	double AWGN,y;
 	double mean_of_signal_energy = 1;  //in the case inverse BPSK (1 -> -1, 0 -> 1)
-	double SNR = 3;   //SNR = mean_of_signal_energy / mean_of_WGN_energy ,
+	//SNR = mean_of_signal_energy / mean_of_WGN_energy ,
 	double mean_of_AWGN_energy = mean_of_signal_energy / SNR;   // mean_of_signal_energy / mean_of_AWGN_energy = SNR   
 	double AWGN_SNR;
 	if (b)	//mapping the bit
@@ -161,7 +162,6 @@ double input(short b)	//transform the binary bit b to modulated bit +-1 (BPSK) a
 	AWGN = gaussian();	//get a number from X~N(0,1)
 	AWGN_SNR = AWGN * sqrt(mean_of_AWGN_energy);
 	y = y + AWGN_SNR;
-	
 	return y;
 }
 double phi(double x){

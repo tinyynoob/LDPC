@@ -12,11 +12,11 @@ int main()
 	double sigma,SNR;
 	rand_init();
 	sigma = 1;
-	SNR = 3;
+	SNR = 1.3;
 
 	/*---------------------read alist and build the Tanner graph----------------------*/
 	{	
-		f = fopen("./alist.txt", "r");
+		f = fopen("./Gallager_3_6.txt", "r");
 		if (!fscanf(f, "%d %d", &vNum, &cNum))
 			printf("ERROR\n");
 		//printf("%d %d\n", vNum, cNum);
@@ -73,17 +73,18 @@ int main()
 	f = fopen("./analysis.csv", "w");
 	for (count_loop = 0; count_loop < 10000; count_loop++)
 	{
+		printf("%dth loop\n", count_loop);
 		/*---------------initialization step-------------------*/
 		{
-			printf("LDPC log-SPA\n\n initial y_i values:\n");
+			//printf("LDPC log-SPA\n\n initial y_i values:\n");
 			for (i = 0; i < vNum; i++)
 			{
 				variable[i] = input(0,SNR);	//y_i	default codeword: 00000~
 				variable[i] = 2 * variable[i] / sigma / sigma;
-				printf("%.6lf\t", variable[i]);
+				//printf("%.6lf\t", variable[i]);
 				last_binary[i] = 5;	// arbitrarily set but cant be 0 or 1
 			}
-			printf("\n\n");
+			//printf("\n\n");
 
 			for (i = 0; i < vNum; i++)
 				for (j = 0; j < vWeight[i]; j++)
@@ -110,13 +111,15 @@ int main()
 				else
 					binary[i] = 0;
 			}
-			printf(" %dth iteration:\n", count_iteration);
+			//printf(" %dth iteration:\n", count_iteration);
+			/*
 			for (i = 0; i < vNum; i++)
 				printf("%.6lf\t", Q[i]);
 			printf("\n");
 			for (i = 0; i < vNum; i++)
 				printf("%d\t\t", binary[i]);
 			printf("\n");
+			*/
 
 			/*--------------check the algorithm ending condition--------------*/
 			if (end_condition_check(cNum, cWeight, binary, V))	//check if cH^{T}==0
@@ -130,11 +133,13 @@ int main()
 		}
 		/*---------------end iteration step-------------------*/
 
-		printf("--------------algorithm ends--------------\n\n");
+		//printf("--------------algorithm ends--------------\n\n");
+		/*
 		printf("the estimated codeword:\n");
 		for (i = 0; i < vNum; i++)
 			printf("%d  ", binary[i]);
 		printf("\n\n");
+		*/
 
 		for (i = 0; i < vNum; i++)
 			fprintf(f,"%d,",binary[i]);

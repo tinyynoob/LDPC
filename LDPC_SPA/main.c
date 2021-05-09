@@ -68,6 +68,7 @@ int main()
 	last_binary = malloc(sizeof(short) * vNum);
 	variable = malloc(sizeof(double) * vNum);
 	Q = malloc(sizeof(double) * vNum);
+
 	f = fopen("./analysis.csv", "w");
 	for (count_loop = 0; count_loop < 10000; count_loop++)
 	{
@@ -139,6 +140,7 @@ int main()
 		fprintf(f,"\n");
 	}
 	fclose(f);
+
 	//free the pointers and end
 	freee(vNum, cNum, vWeight, cWeight, V, C, binary, last_binary, variable, Q,  q, r);
 	system("pause");
@@ -149,7 +151,7 @@ double input(short b)	//transform the binary bit b to modulated bit +-1 (BPSK) a
 {
 	double AWGN,y;
 	double mean_of_signal_energy = 1;  //in the case inverse BPSK (1 -> -1, 0 -> 1)
-	double SNR = 0.5;   //SNR = mean_of_signal_energy / mean_of_WGN_energy ,
+	double SNR = 3;   //SNR = mean_of_signal_energy / mean_of_WGN_energy ,
 	double mean_of_AWGN_energy = mean_of_signal_energy / SNR;   // mean_of_signal_energy / mean_of_AWGN_energy = SNR   
 	double AWGN_SNR;
 	if (b)	//mapping the bit
@@ -208,7 +210,7 @@ void qUpdate(int start, int weight, int* cWeight, int** V, int** C, double**q,do
 	int i, n;
 	double ans;
 	ans = variable[start];
-	for (i = 0; i < weight; i++)	//update each Q[i]
+	for (i = 0; i < weight; i++)	//update Q[start]
 		ans += r[start][i];
 	Q[start] = ans;
 

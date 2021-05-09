@@ -1,5 +1,5 @@
 ﻿  main.c
-C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(143,63): warning C4133: '函式': 不相容的類型 - 從 'short *' 至 'double *'
-C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(249,92): warning C4028: 型式參數 8 與來自宣告的不同
-C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(251,9): warning C4101: 'j': 未參考的區域變數
+C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(145,63): warning C4133: '函式': 不相容的類型 - 從 'short *' 至 'double *'
+C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(251,92): warning C4028: 型式參數 8 與來自宣告的不同
+C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(253,9): warning C4101: 'j': 未參考的區域變數
   LDPC_SPA.vcxproj -> C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\Debug\LDPC_SPA.exe

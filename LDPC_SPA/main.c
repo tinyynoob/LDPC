@@ -5,14 +5,14 @@
 int main()
 {
 	FILE* f;
-	int n, i, j,count_iteration,count_loop;
+	int n, i, j, count_iteration, count_loop, max_iteration;
 	int cNum, vNum, * vWeight, * cWeight, ** V, ** C;	//to store the Tanner graph
 	double *variable,*Q,**q,**r;	//to store the values and messages
-	short* binary,*last_binary;		//to store the estimated codewords
-	double sigma,SNR;
+	short* binary;		//to store the estimated codewords
+	double SNR_db,sigma;
 	rand_init();
-	sigma = 1;
-	SNR = 1.3;
+	SNR_db = 1.9;
+	max_iteration = 16;
 
 	/*---------------------read alist and build the Tanner graph----------------------*/
 	{	
@@ -66,12 +66,12 @@ int main()
 	}
 	/*---------------------end building the Tanner graph----------------------*/
 	binary = malloc(sizeof(short) * vNum);
-	last_binary = malloc(sizeof(short) * vNum);
 	variable = malloc(sizeof(double) * vNum);
 	Q = malloc(sizeof(double) * vNum);
 
+	sigma = sqrt(pow(10, -SNR_db / 10));	//
 	f = fopen("./analysis.csv", "w");
-	for (count_loop = 0; count_loop < 10000; count_loop++)
+	for (count_loop = 0; count_loop < 1000; count_loop++)
 	{
 		printf("%dth loop\n", count_loop);
 		/*---------------initialization step-------------------*/
@@ -79,10 +79,9 @@ int main()
 			//printf("LDPC log-SPA\n\n initial y_i values:\n");
 			for (i = 0; i < vNum; i++)
 			{
-				variable[i] = input(0,SNR);	//y_i	default codeword: 00000~
+				variable[i] = input(0, sigma);	//y_i	default codeword: 00000~
 				variable[i] = 2 * variable[i] / sigma / sigma;
 				//printf("%.6lf\t", variable[i]);
-				last_binary[i] = 5;	// arbitrarily set but cant be 0 or 1
 			}
 			//printf("\n\n");
 
@@ -125,11 +124,8 @@ int main()
 			if (end_condition_check(cNum, cWeight, binary, V))	//check if cH^{T}==0
 				break;
 
-			if (repeat_result_check(vNum, last_binary, binary))	//check if the result repeats
+			if (count_iteration == max_iteration)	//check if the maximum limit is achieved
 				break;
-
-			for (i = 0; i < vNum; i++)		//update last_binary
-				last_binary[i] = binary[i];
 		}
 		/*---------------end iteration step-------------------*/
 
@@ -148,25 +144,21 @@ int main()
 	fclose(f);
 
 	//free the pointers and end
-	freee(vNum, cNum, vWeight, cWeight, V, C, binary, last_binary, variable, Q,  q, r);
+	freee(vNum, cNum, vWeight, cWeight, V, C, binary, variable, Q,  q, r);
 	system("pause");
 	return 0;
 }
 
-double input(short b,double SNR)	//transform the binary bit b to modulated bit +-1 (BPSK) and add noise
+double input(short b,double sigma)	//transform the binary bit b to modulated bit +-1 (BPSK) and add noise
 {
+	//in the case inverse BPSK (1 -> -1, 0 -> 1), we assume mean_of_signal_energy = 1
 	double AWGN,y;
-	double mean_of_signal_energy = 1;  //in the case inverse BPSK (1 -> -1, 0 -> 1)
-	//SNR = mean_of_signal_energy / mean_of_WGN_energy ,
-	double mean_of_AWGN_energy = mean_of_signal_energy / SNR;   // mean_of_signal_energy / mean_of_AWGN_energy = SNR   
-	double AWGN_SNR;
 	if (b)	//mapping the bit
 		y = -1;
 	else
 		y = 1;
-	AWGN = gaussian();	//get a number from X~N(0,1)
-	AWGN_SNR = AWGN * sqrt(mean_of_AWGN_energy);
-	y = y + AWGN_SNR;
+	AWGN = sigma*gaussian();	//generate a number from X~N(0,sigma^2)
+	y = y + AWGN;
 	return y;
 }
 double phi(double x){
@@ -191,7 +183,7 @@ int searchIndex(int start,int dest,int weight,int **N)	//given start and dest, f
 	return -1;	//if ERROR
 }
 
-void rUpdate(int start ,int weight, int *vWeight,int**V,int **C,double**q,double**r)
+void rUpdate(int start ,int weight, int *vWeight, int**V, int **C, double**q, double**r)
 {	/*L(r)=2atanh(product of tanh( 0.5*(L(q)) ) )*/
 	int i, j, n;
 	double ans;
@@ -210,7 +202,7 @@ void rUpdate(int start ,int weight, int *vWeight,int**V,int **C,double**q,double
 	}
 }
 
-void qUpdate(int start, int weight, int* cWeight, int** V, int** C, double**q,double**r,double *Q,double *variable)
+void qUpdate(int start, int weight, int* cWeight, int** V, int** C, double**q, double**r, double *Q, double *variable)
 {
 	int i, n;
 	double ans;
@@ -228,7 +220,7 @@ void qUpdate(int start, int weight, int* cWeight, int** V, int** C, double**q,do
 	}
 }
 
-int end_condition_check(int cNum,int *cWeight,short *binary,int **V)		//if the ending codition is satisfied, return 1
+int end_condition_check(int cNum, int *cWeight, short *binary, int **V)		//if the ending codition is satisfied, return 1
 {
 	int i,j, sum;
 	for (i = 0; i < cNum;i++)
@@ -244,16 +236,7 @@ int end_condition_check(int cNum,int *cWeight,short *binary,int **V)		//if the e
 	return 1;	//no error is found
 }
 
-int repeat_result_check(int vNum,short* last_binary,short*binary)
-{
-	int i;
-	for (i = 0; i < vNum; i++)	//if we have identical estimated codeword as the last iteration, then end the algorithm
-		if (last_binary[i] - binary[i] != 0)
-			return 0;
-	return 1;
-}
-
-void freee(int vNum,int cNum,int *vWeight,int *cWeight,int **V,int**C,short*binary, short* last_binary,double*variable,double*Q,double**q,double**r)
+void freee(int vNum,int cNum,int *vWeight,int *cWeight,int **V, int**C, short*binary, double*variable, double*Q, double**q, double**r)
 {
 	int i, j;
 	for (i = 0; i < vNum; i++)
@@ -273,7 +256,6 @@ void freee(int vNum,int cNum,int *vWeight,int *cWeight,int **V,int**C,short*bina
 	free(binary);
 	free(variable);
 	free(Q);
-	free(last_binary);
 	free(q);
 	free(r);
 }

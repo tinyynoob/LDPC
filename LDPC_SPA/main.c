@@ -8,12 +8,13 @@ int main()
 	int n, i, j, count_iteration, count_loop, max_iteration;
 	int cNum, vNum, * vWeight, * cWeight, ** V, ** C;	//to store the Tanner graph
 	double *variable,*Q,**q,**r;	//to store the values and messages
-	short* binary;		//to store the estimated codewords
+	short* binary;		//to store the estimated codeword
 	double SNR_db,sigma;
 	rand_init();
-	SNR_db = 1.9;
+	SNR_db = 1.6;
 	max_iteration = 16;
 
+	printf("LDPC log-SPA\n\n");
 	/*---------------------read alist and build the Tanner graph----------------------*/
 	{	
 		f = fopen("./Gallager_3_6.txt", "r");
@@ -69,17 +70,17 @@ int main()
 	variable = malloc(sizeof(double) * vNum);
 	Q = malloc(sizeof(double) * vNum);
 
-	sigma = sqrt(pow(10, -SNR_db / 10));	//
+	sigma = sqrt(pow(10, -SNR_db / 10));	//compute sigma from SNR_db, and we assume mean_of_signal_energy = 1
 	f = fopen("./analysis.csv", "w");
-	for (count_loop = 0; count_loop < 1000; count_loop++)
+	for (count_loop = 0; count_loop < 10000; count_loop++)
 	{
 		printf("%dth loop\n", count_loop);
 		/*---------------initialization step-------------------*/
 		{
-			//printf("LDPC log-SPA\n\n initial y_i values:\n");
+			//printf("initial y_i values:\n");
 			for (i = 0; i < vNum; i++)
 			{
-				variable[i] = input(0, sigma);	//y_i	default codeword: 00000~
+				variable[i] = input(0, sigma);	//y_i	default codeword:00000~
 				variable[i] = 2 * variable[i] / sigma / sigma;
 				//printf("%.6lf\t", variable[i]);
 			}
@@ -110,7 +111,7 @@ int main()
 				else
 					binary[i] = 0;
 			}
-			//printf(" %dth iteration:\n", count_iteration);
+			printf(" %dth iteration:\n", count_iteration);
 			/*
 			for (i = 0; i < vNum; i++)
 				printf("%.6lf\t", Q[i]);
@@ -149,18 +150,7 @@ int main()
 	return 0;
 }
 
-double input(short b,double sigma)	//transform the binary bit b to modulated bit +-1 (BPSK) and add noise
-{
-	//in the case inverse BPSK (1 -> -1, 0 -> 1), we assume mean_of_signal_energy = 1
-	double AWGN,y;
-	if (b)	//mapping the bit
-		y = -1;
-	else
-		y = 1;
-	AWGN = sigma*gaussian();	//generate a number from X~N(0,sigma^2)
-	y = y + AWGN;
-	return y;
-}
+
 double phi(double x){
 	return -log(tanh(0.5*x));
 }
@@ -172,6 +162,18 @@ double sgn(double x)
 		return 1;
 	return -1;
 }
+double input(short b,double sigma)	//transform the binary bit b to modulated bit +-1 (inverse BPSK) and add noise
+{
+	double AWGN,y;
+	if (b)	//mapping the bit
+		y = -1;
+	else
+		y = 1;
+	AWGN = sigma*gaussian();	//generate a number from X~N(0,sigma^2)
+	y = y + AWGN;
+	return y;
+}
+
 int searchIndex(int start,int dest,int weight,int **N)	//given start and dest, find the number of start in dest's list
 {														//thus we need weight of dest and the connecting node list of the dest
 	int i;
@@ -227,11 +229,9 @@ int end_condition_check(int cNum, int *cWeight, short *binary, int **V)		//if th
 	{
 		sum = 0;
 		for (j=0;j<cWeight[i];j++)
-		{
 			sum = sum ^ binary[V[i][j]];	//xor operation
-			if (sum)
-				return 0;	//if a c-node doesn't sum to 0, return 0
-		}
+		if (sum)
+			return 0;	//if a c-node doesn't sum to 0, return 0
 	}
 	return 1;	//no error is found
 }

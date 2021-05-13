@@ -5,14 +5,16 @@
 int main()
 {
 	FILE* f;
-	int n, i, j, count_iteration, count_loop, max_iteration;
+	int n, i, j, count_iteration, count_loop, max_iteration, loopNum;
 	int cNum, vNum, * vWeight, * cWeight, ** V, ** C;	//to store the Tanner graph
 	double *variable,*Q,**q,**r;	//to store the values and messages
 	short* binary;		//to store the estimated codeword
+	double bit_error_rate, frame_error_rate;
 	double SNR_db,sigma;
 	rand_init();
-	SNR_db = 1.6;
+	SNR_db = 1.45;
 	max_iteration = 16;
+	loopNum = 500;	// #loop
 
 	printf("LDPC log-SPA\n\n");
 	/*---------------------read alist and build the Tanner graph----------------------*/
@@ -69,10 +71,11 @@ int main()
 	binary = malloc(sizeof(short) * vNum);
 	variable = malloc(sizeof(double) * vNum);
 	Q = malloc(sizeof(double) * vNum);
+	bit_error_rate = 0;
+	frame_error_rate = 0;
+	sigma = sqrt(pow(10, -SNR_db / 10));	//compute sigma from SNR_db where we assume mean_of_signal_energy = 1
 
-	sigma = sqrt(pow(10, -SNR_db / 10));	//compute sigma from SNR_db, and we assume mean_of_signal_energy = 1
-	f = fopen("./analysis.csv", "w");
-	for (count_loop = 0; count_loop < 10000; count_loop++)
+	for (count_loop = 0; count_loop < loopNum; count_loop++)
 	{
 		printf("%dth loop\n", count_loop);
 		/*---------------initialization step-------------------*/
@@ -111,7 +114,7 @@ int main()
 				else
 					binary[i] = 0;
 			}
-			printf(" %dth iteration:\n", count_iteration);
+			//printf(" %dth iteration:\n", count_iteration);
 			/*
 			for (i = 0; i < vNum; i++)
 				printf("%.6lf\t", Q[i]);
@@ -137,11 +140,16 @@ int main()
 			printf("%d  ", binary[i]);
 		printf("\n\n");
 		*/
-
-		for (i = 0; i < vNum; i++)
-			fprintf(f,"%d,",binary[i]);
-		fprintf(f,"\n");
+		n = bit_error_count(vNum, binary);
+		bit_error_rate += n;
+		if (n)		//if n is not 0, then the estimated codeword is wrong
+			frame_error_rate++;
 	}
+	bit_error_rate = bit_error_rate / loopNum / vNum;
+	frame_error_rate = frame_error_rate / loopNum;
+	f = fopen("./analysis.csv", "w");
+	fprintf(f,"BER,FER\n");
+	fprintf(f,"%lf,%lf\n", bit_error_rate, frame_error_rate);
 	fclose(f);
 
 	//free the pointers and end
@@ -234,6 +242,15 @@ int end_condition_check(int cNum, int *cWeight, short *binary, int **V)		//if th
 			return 0;	//if a c-node doesn't sum to 0, return 0
 	}
 	return 1;	//no error is found
+}
+
+int bit_error_count(int vNum,short *binary)	//count how many bit is not 0 in a frame
+{
+	int i, count = 0;
+	for (i = 0; i < vNum; i++)
+		if (binary[i])
+			count++;
+	return count;
 }
 
 void freee(int vNum,int cNum,int *vWeight,int *cWeight,int **V, int**C, short*binary, double*variable, double*Q, double**q, double**r)

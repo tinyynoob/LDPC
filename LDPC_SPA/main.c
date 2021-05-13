@@ -1,21 +1,39 @@
 #include"rand.h"
 #include"Header.h"
 
-
 int main()
 {
 	FILE* f;
-	int n, i, j, count_iteration, count_loop, max_iteration, loopNum;
+	int i, max_iteration, loopNum;
+	double SNR_db;
+	double *er;
+	rand_init();
+	max_iteration = 16;
+	loopNum = 20;
+	SNR_db = 1.3;
+
+	er = malloc(sizeof(double) * 2);	// er[0]=BER, er[1]=FER
+	log_SPA_decoder(max_iteration, loopNum, SNR_db, er);
+	f = fopen("./analysis.csv", "w");
+	fprintf(f, "BER,FER\n");
+	fprintf(f, "%lf,%lf\n", er[0], er[1]);
+	fclose(f);
+
+	free(er);
+	system("pause");
+	return 0;
+}
+
+void log_SPA_decoder(int max_iteration, int loopNum, double SNR_db,double *er)
+{
+	FILE* f;
+	int n, i, j, count_iteration, count_loop;
 	int cNum, vNum, * vWeight, * cWeight, ** V, ** C;	//to store the Tanner graph
 	double *variable,*Q,**q,**r;	//to store the values and messages
 	short* binary;		//to store the estimated codeword
-	double bit_error_rate, frame_error_rate;
-	double SNR_db,sigma;
-	rand_init();
-	SNR_db = 1.45;
-	max_iteration = 16;
-	loopNum = 500;	// #loop
-
+	double bit_error_rate, frame_error_rate; 
+	double sigma;
+	
 	printf("LDPC log-SPA\n\n");
 	/*---------------------read alist and build the Tanner graph----------------------*/
 	{	
@@ -71,13 +89,14 @@ int main()
 	binary = malloc(sizeof(short) * vNum);
 	variable = malloc(sizeof(double) * vNum);
 	Q = malloc(sizeof(double) * vNum);
+	
 	bit_error_rate = 0;
 	frame_error_rate = 0;
 	sigma = sqrt(pow(10, -SNR_db / 10));	//compute sigma from SNR_db where we assume mean_of_signal_energy = 1
 
 	for (count_loop = 0; count_loop < loopNum; count_loop++)
 	{
-		printf("%dth loop\n", count_loop);
+		 printf("%dth loop\n", count_loop);
 		/*---------------initialization step-------------------*/
 		{
 			//printf("initial y_i values:\n");
@@ -147,15 +166,12 @@ int main()
 	}
 	bit_error_rate = bit_error_rate / loopNum / vNum;
 	frame_error_rate = frame_error_rate / loopNum;
-	f = fopen("./analysis.csv", "w");
-	fprintf(f,"BER,FER\n");
-	fprintf(f,"%lf,%lf\n", bit_error_rate, frame_error_rate);
-	fclose(f);
+	er[0] = bit_error_rate;
+	er[1] = frame_error_rate;
 
 	//free the pointers and end
 	freee(vNum, cNum, vWeight, cWeight, V, C, binary, variable, Q,  q, r);
-	system("pause");
-	return 0;
+	return;
 }
 
 

@@ -4,6 +4,7 @@
 #include<stdlib.h>
 #include<math.h>
 
+void log_SPA_decoder(int, int, double, double*);
 double input(short, double);
 double phi(double);
 double sgn(double);

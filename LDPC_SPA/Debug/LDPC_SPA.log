@@ -1,3 +1,4 @@
 ﻿  main.c
-C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(258,9): warning C4101: 'j': 未參考的區域變數
+C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(7,6): warning C4101: 'i': 未參考的區域變數
+C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\main.c(274,9): warning C4101: 'j': 未參考的區域變數
   LDPC_SPA.vcxproj -> C:\Users\starc\OneDrive\桌面\file\gitPlace\LDPC_SPA\Debug\LDPC_SPA.exe

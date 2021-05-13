@@ -4,19 +4,21 @@
 int main()
 {
 	FILE* f;
-	int i, max_iteration, loopNum;
-	double SNR_db;
+	int i;
 	double *er;
+	int loopNum[] = {20,50,100};
+	double max_iteration[] = {16,16,16};
+	double SNR_db[] = {1.3,1.45,1.6};
 	rand_init();
-	max_iteration = 16;
-	loopNum = 20;
-	SNR_db = 1.3;
-
-	er = malloc(sizeof(double) * 2);	// er[0]=BER, er[1]=FER
-	log_SPA_decoder(max_iteration, loopNum, SNR_db, er);
+	er = malloc(sizeof(double) * 2);	//error_rate	er[0]=BER, er[1]=FER
 	f = fopen("./analysis.csv", "w");
-	fprintf(f, "BER,FER\n");
-	fprintf(f, "%lf,%lf\n", er[0], er[1]);
+	fprintf(f, "SNR_db,BER,FER\n");
+	for (i = 0; i < sizeof(loopNum)/sizeof(int);i++)
+	{
+		printf("process SNR number %d\n", i+1);
+		log_SPA(max_iteration[i], loopNum[i], SNR_db[i], er);
+		fprintf(f, "%lf,%lf,%lf\n", SNR_db[i], er[0], er[1]);
+	}
 	fclose(f);
 
 	free(er);
@@ -24,7 +26,7 @@ int main()
 	return 0;
 }
 
-void log_SPA_decoder(int max_iteration, int loopNum, double SNR_db,double *er)
+void log_SPA(int max_iteration, int loopNum, double SNR_db,double *er)	//analysis the error rate and store at er
 {
 	FILE* f;
 	int n, i, j, count_iteration, count_loop;
@@ -34,7 +36,7 @@ void log_SPA_decoder(int max_iteration, int loopNum, double SNR_db,double *er)
 	double bit_error_rate, frame_error_rate; 
 	double sigma;
 	
-	printf("LDPC log-SPA\n\n");
+	//printf("LDPC log-SPA\n\n");
 	/*---------------------read alist and build the Tanner graph----------------------*/
 	{	
 		f = fopen("./Gallager_3_6.txt", "r");
@@ -96,7 +98,7 @@ void log_SPA_decoder(int max_iteration, int loopNum, double SNR_db,double *er)
 
 	for (count_loop = 0; count_loop < loopNum; count_loop++)
 	{
-		 printf("%dth loop\n", count_loop);
+		//printf("%dth loop\n", count_loop);
 		/*---------------initialization step-------------------*/
 		{
 			//printf("initial y_i values:\n");
@@ -271,7 +273,7 @@ int bit_error_count(int vNum,short *binary)	//count how many bit is not 0 in a f
 
 void freee(int vNum,int cNum,int *vWeight,int *cWeight,int **V, int**C, short*binary, double*variable, double*Q, double**q, double**r)
 {
-	int i, j;
+	int i;
 	for (i = 0; i < vNum; i++)
 	{
 		free(C[i]);

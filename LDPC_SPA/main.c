@@ -6,21 +6,23 @@ int main()
 	FILE* f;
 	int i;
 	double *er;
-	int loopNum[] = {2000,5000,10000};
+	int loopNum[] = {300000,300000,300000};
 	int max_iteration[] = {16,16,16};
-	double SNR_db[] = {1.3,1.45,1.6};
+	double SNR_db[] = {2.05,2.05 ,2.05};
 	rand_init();
 	er = malloc(sizeof(double) * 2);	//error_rate	er[0]=BER, er[1]=FER
 	f = fopen("./analysis.csv", "w");
 	fprintf(f, "#loop,max_iteration,SNR(db),BER,FER\n");
+	fclose(f);
 	for (i = 0; i < sizeof(loopNum)/sizeof(int);i++)
 	{
+		f = fopen("./analysis.csv", "a");
 		printf("processing SNR number %d\n", i+1);
 		log_SPA(max_iteration[i], loopNum[i], SNR_db[i], er);
 		fprintf(f, "%d,%d,%lf,%lf,%lf\n", loopNum[i], max_iteration[i], SNR_db[i], er[0], er[1]);	//output data
+		fclose(f);
 	}
-	fclose(f);
-
+	
 	free(er);
 	system("pause");
 	return 0;

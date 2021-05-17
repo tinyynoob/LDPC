@@ -3,13 +3,15 @@
 
 int main()
 {
+	int loopNum = 5;
 	int max_iteration = 16;
 	double SNR_db=0.8;
 	FILE* f;
-	int i, j, n, count_iteration;
+	int i, j, n, count_iteration, count_loop;
 	int vNum, cNum, * vWeight, * cWeight, ** V;		//to store the Tanner graph
 	double* Q, ** r, ** prev_r;	//to store the values and messages
 	short* binary;		//to store the estimated codeword
+	double bit_error_rate, frame_error_rate;
 	double sigma;
 	rand_init();
 	
@@ -61,73 +63,85 @@ int main()
 	Q = malloc(sizeof(double) * vNum);
 	binary = malloc(sizeof(short) * vNum);
 
+	bit_error_rate = 0;
+	frame_error_rate = 0;
 	sigma = sqrt(pow(10, -SNR_db / 10));	//compute sigma from SNR_db where we assume mean_of_signal_energy = 1
 
-	/*---------------initialization step-------------------*/
+	for (count_loop = 0; count_loop < loopNum; count_loop++)
 	{
-		for (i = 0; i < vNum; i++)
+		printf("%dth loop\n", count_loop);
+		/*---------------initialization step-------------------*/
 		{
-			Q[i] = input(0, sigma);	//y_i	default codeword:00000~
-			printf("%.6lf\t", Q[i]);
-		}
-		printf("\n\n");
-		for (i = 0; i < cNum; i++)
-			for (j = 0; j < cWeight[i]; j++)
+			for (i = 0; i < vNum; i++)
 			{
-				r[i][j] = 0;
-				prev_r[i][j] = 0;
+				Q[i] = input(0, sigma);	//y_i	default codeword:00000~
+				printf("%.6lf\t", Q[i]);
 			}
-	}
-	/*---------------end initialization step-------------------*/
-
-	/*----------------iteration step-------------------*/
-	count_iteration = 0;
-	while (1)
-	{
-		count_iteration++;
-		for (i = 0; i < cNum; i++)
-			rUpdate(i, cWeight[i], Q, r, prev_r, V);
-		for (i = 0; i < cNum; i++)
-			for (j = 0; j < cWeight[i]; j++)
-				Q[V[i][j]] += r[i][j] - prev_r[i][j];
-		for (i = 0; i < vNum; i++)
-		{
-			if (Q[i] < 0)
-				binary[i] = 1;
-			else
-				binary[i] = 0;
+			printf("\n\n");
+			for (i = 0; i < cNum; i++)
+				for (j = 0; j < cWeight[i]; j++)
+				{
+					r[i][j] = 0;
+					prev_r[i][j] = 0;
+				}
 		}
-		printf(" %dth iteration:\n", count_iteration);
-		
+		/*---------------end initialization step-------------------*/
+
+		/*----------------iteration step-------------------*/
+		count_iteration = 0;
+		while (1)
+		{
+			count_iteration++;
+			for (i = 0; i < cNum; i++)
+				rUpdate(i, cWeight[i], Q, r, prev_r, V);
+			for (i = 0; i < cNum; i++)
+				for (j = 0; j < cWeight[i]; j++)
+					Q[V[i][j]] += r[i][j] - prev_r[i][j];
+			for (i = 0; i < vNum; i++)
+			{
+				if (Q[i] < 0)
+					binary[i] = 1;
+				else
+					binary[i] = 0;
+			}
+			printf(" %dth iteration:\n", count_iteration);
+
+			for (i = 0; i < vNum; i++)
+				printf("%.6lf\t", Q[i]);
+			printf("\n");
+			for (i = 0; i < vNum; i++)
+				printf("%d\t\t", binary[i]);
+			printf("\n");
+
+
+			/*--------------check the algorithm ending condition--------------*/
+			if (end_condition_check(cNum, cWeight, binary, V))	//check if cH^{T}==0
+				break;
+
+			if (count_iteration == max_iteration)	//check if the maximum limit is achieved
+				break;
+
+			for (i = 0; i < cNum; i++)
+				for (j = 0; j < cWeight[i]; j++)
+					prev_r[i][j] = r[i][j];
+		}
+		/*---------------end iteration step-------------------*/
+
+		printf("--------------algorithm ends--------------\n\n");
+
+		printf("the estimated codeword:\n");
 		for (i = 0; i < vNum; i++)
-			printf("%.6lf\t", Q[i]);
-		printf("\n");
-		for (i = 0; i < vNum; i++)
-			printf("%d\t\t", binary[i]);
-		printf("\n");
-		
+			printf("%d  ", binary[i]);
+		printf("\n\n");
 
-		/*--------------check the algorithm ending condition--------------*/
-		if (end_condition_check(cNum, cWeight, binary, V))	//check if cH^{T}==0
-			break;
-
-		if (count_iteration == max_iteration)	//check if the maximum limit is achieved
-			break;
-
-
-		for (i = 0; i < cNum; i++)
-			for (j = 0; j < cWeight[i]; j++)
-				prev_r[i][j] = r[i][j];
+		n = bit_error_count(vNum, binary);
+		bit_error_rate += n;
+		if (n)		//if n is not 0, then the estimated codeword is wrong
+			frame_error_rate++;
 	}
-	/*---------------end iteration step-------------------*/
+	bit_error_rate = bit_error_rate / loopNum / vNum;
+	frame_error_rate = frame_error_rate / loopNum;
 
-	printf("--------------algorithm ends--------------\n\n");
-	
-	printf("the estimated codeword:\n");
-	for (i = 0; i < vNum; i++)
-		printf("%d  ", binary[i]);
-	printf("\n\n");
-	
 
 	//free the pointers and end
 	freee(cNum, vWeight, cWeight, V, Q, r, prev_r, binary);
@@ -158,12 +172,13 @@ double input(short b, double sigma)	//transform the binary bit b to modulated bi
 
 void rUpdate(int start, int weight, double* Q, double** r, double** prev_r, int** V)	// update r from the specified c-node
 {
-	short flag, sign = 1;	//the flag is used to indicate first loop
+	short flag, sign;	//the flag is used to indicate first loop
 	int i, j;
 	double min, q;
 
 	for (i = 0; i < weight; i++)
 	{
+		sign = 1;
 		flag = 1;
 		for (j = 0; j < weight; j++)
 		{
@@ -173,11 +188,11 @@ void rUpdate(int start, int weight, double* Q, double** r, double** prev_r, int*
 			sign *= sgn(q);
 			if (flag = 1)		//first
 			{
-				min = abs(q);
+				min = fabs(q);
 				flag = 0;
 			}
-			else if (abs(q) < min)
-				min = abs(q);
+			else if (fabs(q) < min)
+				min = fabs(q);
 		}
 		r[start][i] = (double)sign * min;
 	}
@@ -195,6 +210,15 @@ int end_condition_check(int cNum, int* cWeight, short* binary, int** V)		//if th
 			return 0;	//if a c-node doesn't sum to 0, return 0
 	}
 	return 1;	//no error is found
+}
+
+int bit_error_count(int vNum, short* binary)	//count how many bit is not 0 in a frame
+{
+	int i, count = 0;
+	for (i = 0; i < vNum; i++)
+		if (binary[i])
+			count++;
+	return count;
 }
 
 void freee(int cNum, int* vWeight, int* cWeight, int** V, double* Q, double** r, double** prev_r, short* binary)

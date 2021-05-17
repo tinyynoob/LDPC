@@ -5,7 +5,7 @@ int main()
 {
 	int loopNum = 5;
 	int max_iteration = 16;
-	double SNR_db=0.8;
+	double SNR_db=1.6;
 	FILE* f;
 	int i, j, n, count_iteration, count_loop;
 	int vNum, cNum, * vWeight, * cWeight, ** V;		//to store the Tanner graph
@@ -18,7 +18,7 @@ int main()
 	printf("LDPC min-sum\n\n");
 	/*---------------------read alist and build the Tanner graph----------------------*/
 	{
-		f = fopen("./alist.txt", "r");
+		f = fopen("./Gallager_3_6.txt", "r");
 		if (!fscanf(f, "%d %d", &vNum, &cNum))
 			printf("ERROR\n");
 		//printf("%d %d\n", vNum, cNum);
@@ -75,9 +75,9 @@ int main()
 			for (i = 0; i < vNum; i++)
 			{
 				Q[i] = input(0, sigma);	//y_i	default codeword:00000~
-				printf("%.6lf\t", Q[i]);
+				//printf("%.6lf\t", Q[i]);
 			}
-			printf("\n\n");
+			//printf("\n\n");
 			for (i = 0; i < cNum; i++)
 				for (j = 0; j < cWeight[i]; j++)
 				{
@@ -104,15 +104,15 @@ int main()
 				else
 					binary[i] = 0;
 			}
-			printf(" %dth iteration:\n", count_iteration);
-
+			//printf(" %dth iteration:\n", count_iteration);
+			/*
 			for (i = 0; i < vNum; i++)
 				printf("%.6lf\t", Q[i]);
 			printf("\n");
 			for (i = 0; i < vNum; i++)
 				printf("%d\t\t", binary[i]);
 			printf("\n");
-
+			*/
 
 			/*--------------check the algorithm ending condition--------------*/
 			if (end_condition_check(cNum, cWeight, binary, V))	//check if cH^{T}==0
@@ -128,12 +128,12 @@ int main()
 		/*---------------end iteration step-------------------*/
 
 		printf("--------------algorithm ends--------------\n\n");
-
+		
 		printf("the estimated codeword:\n");
 		for (i = 0; i < vNum; i++)
 			printf("%d  ", binary[i]);
 		printf("\n\n");
-
+		
 		n = bit_error_count(vNum, binary);
 		bit_error_rate += n;
 		if (n)		//if n is not 0, then the estimated codeword is wrong
@@ -180,13 +180,14 @@ void rUpdate(int start, int weight, double* Q, double** r, double** prev_r, int*
 	{
 		sign = 1;
 		flag = 1;
+		min = 0;	//to ensure the c-node with only one edge correct
 		for (j = 0; j < weight; j++)
 		{
 			if (j == i)
 				continue;
-			q = Q[V[start][i]] - prev_r[i][j];
+			q = Q[V[start][j]] - prev_r[start][j];
 			sign *= sgn(q);
-			if (flag = 1)		//first
+			if (flag == 1)		//first
 			{
 				min = fabs(q);
 				flag = 0;

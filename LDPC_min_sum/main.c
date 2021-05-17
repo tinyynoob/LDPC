@@ -3,9 +3,33 @@
 
 int main()
 {
-	int loopNum = 5;
-	int max_iteration = 16;
-	double SNR_db=1.6;
+	FILE* f;
+	int i;
+	double* er;
+	int loopNum[] = {100,100,500,500,1000,1000,1000};
+	int max_iteration[] = {16,16,16,16,16,16,16};
+	double SNR_db[] = {1.6,1.9,2.2,2.5,2.8,3.1,3.4};
+	rand_init();
+	er = malloc(sizeof(double) * 2);	//error_rate	er[0]=BER, er[1]=FER
+	f = fopen("./analysis.csv", "w");
+	fprintf(f, "#loop,max_iteration,SNR(db),BER,FER\n");
+	fclose(f);
+	for (i = 0; i < sizeof(loopNum) / sizeof(int); i++)
+	{
+		f = fopen("./analysis.csv", "a");
+		printf("processing SNR number %d\n", i + 1);
+		min_sum(loopNum[i], max_iteration[i], SNR_db[i], er);
+		fprintf(f, "%d,%d,%lf,%lf,%lf\n", loopNum[i], max_iteration[i], SNR_db[i], er[0], er[1]);	//output data
+		fclose(f);
+	}
+
+	free(er);
+	system("pause");
+	return 0;
+}
+
+void min_sum(int loopNum, int max_iteration, double SNR_db, double* er)
+{
 	FILE* f;
 	int i, j, n, count_iteration, count_loop;
 	int vNum, cNum, * vWeight, * cWeight, ** V;		//to store the Tanner graph
@@ -13,9 +37,8 @@ int main()
 	short* binary;		//to store the estimated codeword
 	double bit_error_rate, frame_error_rate;
 	double sigma;
-	rand_init();
 	
-	printf("LDPC min-sum\n\n");
+	//printf("LDPC min-sum\n\n");
 	/*---------------------read alist and build the Tanner graph----------------------*/
 	{
 		f = fopen("./Gallager_3_6.txt", "r");
@@ -69,7 +92,7 @@ int main()
 
 	for (count_loop = 0; count_loop < loopNum; count_loop++)
 	{
-		printf("%dth loop\n", count_loop);
+		//printf("%dth loop\n", count_loop);
 		/*---------------initialization step-------------------*/
 		{
 			for (i = 0; i < vNum; i++)
@@ -127,13 +150,13 @@ int main()
 		}
 		/*---------------end iteration step-------------------*/
 
-		printf("--------------algorithm ends--------------\n\n");
-		
+		//printf("--------------algorithm ends--------------\n\n");
+		/*
 		printf("the estimated codeword:\n");
 		for (i = 0; i < vNum; i++)
 			printf("%d  ", binary[i]);
 		printf("\n\n");
-		
+		*/
 		n = bit_error_count(vNum, binary);
 		bit_error_rate += n;
 		if (n)		//if n is not 0, then the estimated codeword is wrong
@@ -141,12 +164,12 @@ int main()
 	}
 	bit_error_rate = bit_error_rate / loopNum / vNum;
 	frame_error_rate = frame_error_rate / loopNum;
-
+	er[0] = bit_error_rate;
+	er[1] = frame_error_rate;
 
 	//free the pointers and end
 	freee(cNum, vWeight, cWeight, V, Q, r, prev_r, binary);
-	system("pause");
-	return 0;
+	return;
 }
 
 

@@ -4,7 +4,7 @@
 
 int main()
 {
-	int loopNum = 5;
+	int loopNum = 1;
 	int max_iteration = 16;
 	FILE* f;
 	int i, j, n, count_iteration, count_loop;
@@ -12,7 +12,8 @@ int main()
 	double* Q, ** r, ** prev_r;	//to store the values and messages
 	short* binary;		//to store the estimated codeword
 	double bit_error_rate, frame_error_rate;
-	double sigma=1.6;
+	double sigma=sqrt(0.5);
+	rand_init();
 
 	printf("LDPC min-sum-C\n\n");
 	/*---------------------read alist and build the Tanner graph----------------------*/
@@ -68,12 +69,20 @@ int main()
 
 	for (count_loop = 0; count_loop < loopNum; count_loop++)
 	{
-		printf("%dth loop\n", count_loop);
+		//printf("%dth loop\n", count_loop);
 		/*---------------initialization step-------------------*/
 		{
 			for (i = 0; i < vNum; i++)
 			{
-				Q[i] = input(0, sigma);	//y_i	default codeword:00000~
+				Q[0] = -6;
+				Q[1] = 3.2;
+				Q[2] = -3.6;
+				Q[3] = 2.8;
+				Q[4] = 2;
+				Q[5] = -4.4;
+				Q[6] = -1.6;
+				Q[7] = -4.8;
+				//Q[i] = input(0, sigma);	//y_i	default codeword:00000~
 				printf("%.6lf\t", Q[i]);
 			}
 			printf("\n\n");
@@ -182,21 +191,19 @@ void rUpdate(int start, int weight, double* Q, double** r, double** prev_r, int*
 		return;
 	}
 	bs = malloc(sizeof(double*) * 2);
-	bs[0] = malloc(sizeof(double) * weight);
-	bs[1] = malloc(sizeof(double) * weight);
-	//bs[0][0] = 0;
-	bs[0][1] = Q[V[start][0]] - prev_r[start][0];
-	//bs[1][0] = 0;
-	bs[1][1] = Q[V[start][weight - 1]] - prev_r[start][weight - 1];
-	for (i = 2; i < weight; i++)
-		bs[0][i] = boxsum(bs[0][i - 1], Q[V[start][i-1]] - prev_r[start][i-1]);
-	for (i = 2; i < weight; i++)
-		bs[1][i] = boxsum(bs[1][i - 1], Q[V[start][weight-i]] - prev_r[start][weight-i]);
-
-	r[start][0] = bs[1][weight - 1];
-	r[start][weight - 1] = bs[0][weight - 1];
+	bs[0] = malloc(sizeof(double) * (weight-1));	//boxsum --->
+	bs[1] = malloc(sizeof(double) * (weight-1));	//boxsum <---
+	bs[0][0] = Q[V[start][0]] - prev_r[start][0];
+	bs[1][0] = Q[V[start][weight - 1]] - prev_r[start][weight - 1];
 	for (i = 1; i < weight-1; i++)
-		r[start][i] = boxsum(bs[0][i], bs[1][weight - i - 1]);
+		bs[0][i] = boxsum(bs[0][i - 1], Q[V[start][i]] - prev_r[start][i]);
+	for (i = 1; i < weight-1; i++)
+		bs[1][i] = boxsum(bs[1][i - 1], Q[V[start][weight-1-i]] - prev_r[start][weight-1-i]);
+
+	r[start][0] = bs[1][weight - 2];
+	r[start][weight - 1] = bs[0][weight - 2];
+	for (i = 1; i < weight-1; i++)
+		r[start][i] = boxsum(bs[0][i-1], bs[1][weight - i - 2]);
 	free(bs[0]);
 	free(bs[1]);
 	free(bs);

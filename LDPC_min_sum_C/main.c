@@ -4,7 +4,7 @@
 
 int main()
 {
-	int loopNum = 1;
+	int loopNum = 5;
 	int max_iteration = 16;
 	FILE* f;
 	int i, j, n, count_iteration, count_loop;
@@ -14,10 +14,10 @@ int main()
 	double bit_error_rate, frame_error_rate;
 	double sigma=1.6;
 
-	//printf("LDPC min-sum\n\n");
+	printf("LDPC min-sum-C\n\n");
 	/*---------------------read alist and build the Tanner graph----------------------*/
 	{
-		f = fopen("./Gallager_3_6.txt", "r");
+		f = fopen("./alist.txt", "r");
 		if (!fscanf(f, "%d %d", &vNum, &cNum))
 			printf("ERROR\n");
 		//printf("%d %d\n", vNum, cNum);
@@ -68,15 +68,15 @@ int main()
 
 	for (count_loop = 0; count_loop < loopNum; count_loop++)
 	{
-		//printf("%dth loop\n", count_loop);
+		printf("%dth loop\n", count_loop);
 		/*---------------initialization step-------------------*/
 		{
 			for (i = 0; i < vNum; i++)
 			{
 				Q[i] = input(0, sigma);	//y_i	default codeword:00000~
-				//printf("%.6lf\t", Q[i]);
+				printf("%.6lf\t", Q[i]);
 			}
-			//printf("\n\n");
+			printf("\n\n");
 			for (i = 0; i < cNum; i++)
 				for (j = 0; j < cWeight[i]; j++)
 				{
@@ -103,15 +103,15 @@ int main()
 				else
 					binary[i] = 0;
 			}
-			//printf(" %dth iteration:\n", count_iteration);
-			/*
+			printf(" %dth iteration:\n", count_iteration);
+			
 			for (i = 0; i < vNum; i++)
 				printf("%.6lf\t", Q[i]);
 			printf("\n");
 			for (i = 0; i < vNum; i++)
 				printf("%d\t\t", binary[i]);
 			printf("\n");
-			*/
+			
 
 			/*--------------check the algorithm ending condition--------------*/
 			if (end_condition_check(cNum, cWeight, binary, V))	//check if cH^{T}==0
@@ -126,13 +126,13 @@ int main()
 		}
 		/*---------------end iteration step-------------------*/
 
-		//printf("--------------algorithm ends--------------\n\n");
-		/*
+		printf("--------------algorithm ends--------------\n\n");
+		
 		printf("the estimated codeword:\n");
 		for (i = 0; i < vNum; i++)
 			printf("%d  ", binary[i]);
 		printf("\n\n");
-		*/
+		
 		n = bit_error_count(vNum, binary);
 		bit_error_rate += n;
 		if (n)		//if n is not 0, then the estimated codeword is wrong
@@ -171,31 +171,53 @@ double input(short b, double sigma)	//transform the binary bit b to modulated bi
 
 void rUpdate(int start, int weight, double* Q, double** r, double** prev_r, int** V)	// update r from the specified c-node
 {
-	short flag, sign;	//the flag is used to indicate first loop
-	int i, j;
-	double min, q;
-
-	for (i = 0; i < weight; i++)
+	int i;
+	double ** bs;
+	if (weight == 1)	//consider again
+		return;
+	else if (weight == 2)
 	{
-		sign = 1;
-		flag = 1;
-		min = 0;	//to ensure the c-node with only one edge correct
-		for (j = 0; j < weight; j++)
-		{
-			if (j == i)
-				continue;
-			q = Q[V[start][j]] - prev_r[start][j];
-			sign *= sgn(q);
-			if (flag == 1)		//first
-			{
-				min = fabs(q);
-				flag = 0;
-			}
-			else if (fabs(q) < min)
-				min = fabs(q);
-		}
-		r[start][i] = (double)sign * min;
+		r[start][0] = Q[V[start][1]] - prev_r[start][1];
+		r[start][1] = Q[V[start][0]] - prev_r[start][0];
+		return;
 	}
+	bs = malloc(sizeof(double*) * 2);
+	bs[0] = malloc(sizeof(double) * weight);
+	bs[1] = malloc(sizeof(double) * weight);
+	//bs[0][0] = 0;
+	bs[0][1] = Q[V[start][0]] - prev_r[start][0];
+	//bs[1][0] = 0;
+	bs[1][1] = Q[V[start][weight - 1]] - prev_r[start][weight - 1];
+	for (i = 2; i < weight; i++)
+		bs[0][i] = boxsum(bs[0][i - 1], Q[V[start][i-1]] - prev_r[start][i-1]);
+	for (i = 2; i < weight; i++)
+		bs[1][i] = boxsum(bs[1][i - 1], Q[V[start][weight-i]] - prev_r[start][weight-i]);
+
+	r[start][0] = bs[1][weight - 1];
+	r[start][weight - 1] = bs[0][weight - 1];
+	for (i = 1; i < weight-1; i++)
+		r[start][i] = boxsum(bs[0][i], bs[1][weight - i - 1]);
+	free(bs[0]);
+	free(bs[1]);
+	free(bs);
+}
+
+double boxsum(double x, double y)	//boxsum(x,y)=max(0,x+y)-max(x,y)+s	//the correction constant c is chosen 0.5
+{
+	double a, b;
+	a = 0;	//a=max(0,x+y)
+	if (x + y > 0)
+		a = x + y;
+	b = x;	//b=max(x,y)
+	if (y > x)
+		b = y;
+
+	if (fabs(x + y) < 2 && fabs(x - y) > 2 * fabs(x + y))
+		return a - b + 0.5;
+	else if (fabs(x - y) < 2 && fabs(x + y) > 2 * fabs(x - y))
+		return a - b - 0.5;
+	else
+		return a - b;	
 }
 
 int end_condition_check(int cNum, int* cWeight, short* binary, int** V)		//if the ending codition is satisfied, return 1

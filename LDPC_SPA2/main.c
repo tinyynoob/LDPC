@@ -2,47 +2,26 @@
 #include"rand.h"
 
 
+
 int main()
 {
-	FILE* f;
-	int i;
-	double* er;
-	int loopNum[] = { 500000 ,500000 };
-	int max_iteration[] = { 16,16};
-	double SNR_db[] = { 1.4,2};
-	rand_init();
-	er = malloc(sizeof(double) * 2);	//error_rate	er[0]=BER, er[1]=FER
-	f = fopen("./analysis.csv", "w");
-	fprintf(f, "#loop,max_iteration,SNR(db),BER,FER\n");
-	fclose(f);
-	for (i = 0; i < sizeof(loopNum) / sizeof(int); i++)
-	{
-		f = fopen("./analysis.csv", "a");
-		printf("processing SNR number %d\n", i + 1);
-		min_sum_C(loopNum[i], max_iteration[i], SNR_db[i], er);
-		fprintf(f, "%d,%d,%lf,%lf,%lf\n", loopNum[i], max_iteration[i], SNR_db[i], er[0], er[1]);	//output data
-		fclose(f);
-	}
-
-	free(er);
-	system("pause");
-	return 0;
-}
-
-void min_sum_C(int loopNum, int max_iteration, double SNR_db, double* er)
-{
+	int loopNum = 1;
+	int max_iteration = 16;
+	double SNR_db = 1.2;
 	FILE* f;
 	int i, j, n, count_iteration, count_loop;
 	int vNum, cNum, * vWeight, * cWeight, ** V;		//to store the Tanner graph
 	double* Q, ** r, ** prev_r;	//to store the values and messages
 	short* binary;		//to store the estimated codeword
 	double bit_error_rate, frame_error_rate;
-	double sigma;
+	double sigma=sqrt(0.5);
 
-	//printf("LDPC min-sum-C\n\n");
+	rand_init();
+
+	printf("LDPC log-SPA\n\n");
 	/*---------------------read alist and build the Tanner graph----------------------*/
 	{
-		f = fopen("./Gallager_3_6.txt", "r");
+		f = fopen("./alist.txt", "r");
 		if (!fscanf(f, "%d %d", &vNum, &cNum))
 			printf("ERROR\n");
 		//printf("%d %d\n", vNum, cNum);
@@ -89,19 +68,28 @@ void min_sum_C(int loopNum, int max_iteration, double SNR_db, double* er)
 
 	bit_error_rate = 0;
 	frame_error_rate = 0;
-	sigma = sqrt(pow(10, -SNR_db / 10));	//compute sigma from SNR_db where we assume mean_of_signal_energy = 1
+	//sigma = sqrt(pow(10, -SNR_db / 10));	//compute sigma from SNR_db where we assume mean_of_signal_energy = 1
 
 	for (count_loop = 0; count_loop < loopNum; count_loop++)
 	{
-		//printf("%dth loop\n", count_loop);
+		printf("%dth loop\n", count_loop);
 		/*---------------initialization step-------------------*/
 		{
+			Q[0] = 0.2;
+			Q[1] = 0.2;
+			Q[2] = -0.9;
+			Q[3] = 0.6;
+			Q[4] = 0.5;
+			Q[5] = -1.1;
+			Q[6] = -0.4;
+			Q[7] = -1.2;
 			for (i = 0; i < vNum; i++)
 			{
-				Q[i] = input(0, sigma);	//y_i	default codeword:00000~
-				//printf("%.6lf\t", Q[i]);
+				//Q[i] = input(0, sigma);	//y_i	default codeword:00000~
+				Q[i] = 2 * Q[i] / sigma / sigma;
+				printf("%.6lf\t", Q[i]);
 			}
-			//printf("\n\n");
+			printf("\n\n");
 			for (i = 0; i < cNum; i++)
 				for (j = 0; j < cWeight[i]; j++)
 				{
@@ -128,15 +116,15 @@ void min_sum_C(int loopNum, int max_iteration, double SNR_db, double* er)
 				else
 					binary[i] = 0;
 			}
-			//printf(" %dth iteration:\n", count_iteration);
-			/*
+			printf(" %dth iteration:\n", count_iteration);
+			
 			for (i = 0; i < vNum; i++)
 				printf("%.6lf\t", Q[i]);
 			printf("\n");
 			for (i = 0; i < vNum; i++)
 				printf("%d\t\t", binary[i]);
 			printf("\n");
-			*/
+			
 
 			/*--------------check the algorithm ending condition--------------*/
 			if (end_condition_check(cNum, cWeight, binary, V))	//check if cH^{T}==0
@@ -151,13 +139,13 @@ void min_sum_C(int loopNum, int max_iteration, double SNR_db, double* er)
 		}
 		/*---------------end iteration step-------------------*/
 
-		//printf("--------------algorithm ends--------------\n\n");
-		/*
+		printf("--------------algorithm ends--------------\n\n");
+		
 		printf("the estimated codeword:\n");
 		for (i = 0; i < vNum; i++)
 			printf("%d  ", binary[i]);
 		printf("\n\n");
-		*/
+		
 		n = bit_error_count(vNum, binary);
 		bit_error_rate += n;
 		if (n)		//if n is not 0, then the estimated codeword is wrong
@@ -165,8 +153,8 @@ void min_sum_C(int loopNum, int max_iteration, double SNR_db, double* er)
 	}
 	bit_error_rate = bit_error_rate / loopNum / vNum;
 	frame_error_rate = frame_error_rate / loopNum;
-	er[0] = bit_error_rate;
-	er[1] = frame_error_rate;
+	//er[0] = bit_error_rate;
+	//er[1] = frame_error_rate;
 
 	//free the pointers and end
 	freee(cNum, vWeight, cWeight, V, Q, r, prev_r, binary);
@@ -197,7 +185,7 @@ double input(short b, double sigma)	//transform the binary bit b to modulated bi
 void rUpdate(int start, int weight, double* Q, double** r, double** prev_r, int** V)	// update r from the specified c-node
 {
 	int i;
-	double ** bs;
+	double** bs;
 	if (weight == 1)	//consider again
 		return;
 	else if (weight == 2)
@@ -207,40 +195,37 @@ void rUpdate(int start, int weight, double* Q, double** r, double** prev_r, int*
 		return;
 	}
 	bs = malloc(sizeof(double*) * 2);
-	bs[0] = malloc(sizeof(double) * (weight-1));	//boxsum --->
-	bs[1] = malloc(sizeof(double) * (weight-1));	//boxsum <---
+	bs[0] = malloc(sizeof(double) * (weight - 1));	//boxsum --->
+	bs[1] = malloc(sizeof(double) * (weight - 1));	//boxsum <---
 	bs[0][0] = Q[V[start][0]] - prev_r[start][0];
 	bs[1][0] = Q[V[start][weight - 1]] - prev_r[start][weight - 1];
-	for (i = 1; i < weight-1; i++)
+	for (i = 1; i < weight - 1; i++)
 		bs[0][i] = boxsum(bs[0][i - 1], Q[V[start][i]] - prev_r[start][i]);
-	for (i = 1; i < weight-1; i++)
-		bs[1][i] = boxsum(bs[1][i - 1], Q[V[start][weight-1-i]] - prev_r[start][weight-1-i]);
+	for (i = 1; i < weight - 1; i++)
+		bs[1][i] = boxsum(bs[1][i - 1], Q[V[start][weight - 1 - i]] - prev_r[start][weight - 1 - i]);
 
 	r[start][0] = bs[1][weight - 2];
 	r[start][weight - 1] = bs[0][weight - 2];
-	for (i = 1; i < weight-1; i++)
-		r[start][i] = boxsum(bs[0][i-1], bs[1][weight - i - 2]);
+	for (i = 1; i < weight - 1; i++)
+		r[start][i] = boxsum(bs[0][i - 1], bs[1][weight - i - 2]);
 	free(bs[0]);
 	free(bs[1]);
 	free(bs);
 }
 
-double boxsum(double x, double y)	//boxsum(x,y)=max(0,x+y)-max(x,y)+s	//the correction constant c is chosen ( )
+double boxsum(double x, double y)	//boxsum(x,y) = sgn(x)sgn(y)min(|x|,|y|)+log(1+e^{-|x+y|})-log(1+e^{-|x-y|})
 {
-	double a, b;
-	a = 0;	//a=max(0,x+y)
-	if (x + y > 0)
-		a = x + y;
-	b = x;	//b=max(x,y)
-	if (y > x) 
-		b = y;
-
-	if (fabs(x + y) < 2 && fabs(x - y) > 2 * fabs(x + y))
-		return a - b + 0.1;
-	else if (fabs(x - y) < 2 && fabs(x + y) > 2 * fabs(x - y))
-		return a - b - 0.1;
-	else
-		return a - b;
+	double a, b, c;
+	a = fabs(x);
+	if (fabs(y) < a)
+		a = fabs(y);
+	a *= sgn(x);
+	a *= sgn(y);
+	b = exp(-fabs(x + y));
+	b = log(1 + b);
+	c = exp(-fabs(x - y));
+	c = log(1 + c);
+	return a + b - c;
 }
 
 int end_condition_check(int cNum, int* cWeight, short* binary, int** V)		//if the ending codition is satisfied, return 1

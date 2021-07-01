@@ -4,8 +4,8 @@
 #include<stdlib.h>
 #include<math.h>
 
-void min_sum_C(int, int, double, double*);
-short sgn(double x);
+//void min_sum_C(int, int, double, double*);
+short sgn(double);
 double input(short, double);
 void rUpdate(int, int, double*, double**, double**, int**);
 double boxsum(double, double);

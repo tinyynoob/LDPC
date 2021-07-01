@@ -4,6 +4,8 @@ LDPC_min_sum/Debug
 LDPC_min_sum/analysis.csv
 LDPC_min_sum_C/Debug
 LDPC_min_sum_C/analysis.csv
+LDPC_SPA2/Debug
+LDPC_SPA2/analysis.csv
 
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudio
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudio

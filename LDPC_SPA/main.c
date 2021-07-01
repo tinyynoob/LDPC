@@ -6,9 +6,9 @@ int main()
 	FILE* f;
 	int i;
 	double *er;
-	int loopNum[] = { 10000,300000,300000,300000 };
-	int max_iteration[] = {16,16,16,16};
-	double SNR_db[] = {1,6,2.05,2.05 ,2.05};
+	int loopNum[] = { 300000,300000 };
+	int max_iteration[] = {16,16};
+	double SNR_db[] = {2.05,2.05};
 	rand_init();
 	er = malloc(sizeof(double) * 2);	//error_rate	er[0]=BER, er[1]=FER
 	f = fopen("./analysis.csv", "w");

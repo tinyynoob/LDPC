@@ -4,7 +4,7 @@
 #include<stdlib.h>
 #include<math.h>
 
-//void min_sum_C(int, int, double, double*);
+void log_SPA(int, int, double, double*);
 short sgn(double);
 double input(short, double);
 void rUpdate(int, int, double*, double**, double**, int**);

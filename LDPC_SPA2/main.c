@@ -2,26 +2,49 @@
 #include"rand.h"
 
 
-
 int main()
 {
-	int loopNum = 1;
-	int max_iteration = 16;
-	double SNR_db = 1.2;
+	FILE* f;
+	int i;
+	double* er;
+	int loopNum[] = {2000};
+	int max_iteration[] = {16};
+	double SNR_db[] = {1.3};
+	rand_init();
+	er = malloc(sizeof(double) * 2);	//error_rate	er[0]=BER, er[1]=FER
+	f = fopen("./analysis.csv", "w");
+	fprintf(f, "#loop,max_iteration,SNR(db),BER,FER\n");
+	fclose(f);
+	for (i = 0; i < sizeof(loopNum) / sizeof(int); i++)
+	{
+		f = fopen("./analysis.csv", "a");
+		printf("processing SNR number %d\n", i + 1);
+		log_SPA(max_iteration[i], loopNum[i], SNR_db[i], er);
+		fprintf(f, "%d,%d,%lf,%lf,%lf\n", loopNum[i], max_iteration[i], SNR_db[i], er[0], er[1]);	//output data
+		fclose(f);
+	}
+	free(er);
+	system("pause");
+	return 0;
+}
+
+
+void log_SPA(int max_iteration, int loopNum, double SNR_db, double* er)
+{
 	FILE* f;
 	int i, j, n, count_iteration, count_loop;
 	int vNum, cNum, * vWeight, * cWeight, ** V;		//to store the Tanner graph
 	double* Q, ** r, ** prev_r;	//to store the values and messages
 	short* binary;		//to store the estimated codeword
 	double bit_error_rate, frame_error_rate;
-	double sigma=sqrt(0.5);
+	double sigma;
 
 	rand_init();
 
-	printf("LDPC log-SPA\n\n");
+	//printf("LDPC log-SPA\n\n");
 	/*---------------------read alist and build the Tanner graph----------------------*/
 	{
-		f = fopen("./alist.txt", "r");
+		f = fopen("./Gallager_3_6.txt", "r");
 		if (!fscanf(f, "%d %d", &vNum, &cNum))
 			printf("ERROR\n");
 		//printf("%d %d\n", vNum, cNum);
@@ -68,26 +91,18 @@ int main()
 
 	bit_error_rate = 0;
 	frame_error_rate = 0;
-	//sigma = sqrt(pow(10, -SNR_db / 10));	//compute sigma from SNR_db where we assume mean_of_signal_energy = 1
+	sigma = sqrt(pow(10, -SNR_db / 10));	//compute sigma from SNR_db where we assume mean_of_signal_energy = 1
 
 	for (count_loop = 0; count_loop < loopNum; count_loop++)
 	{
-		printf("%dth loop\n", count_loop);
+		//printf("%dth loop\n", count_loop);
 		/*---------------initialization step-------------------*/
 		{
-			Q[0] = 0.2;
-			Q[1] = 0.2;
-			Q[2] = -0.9;
-			Q[3] = 0.6;
-			Q[4] = 0.5;
-			Q[5] = -1.1;
-			Q[6] = -0.4;
-			Q[7] = -1.2;
 			for (i = 0; i < vNum; i++)
 			{
-				//Q[i] = input(0, sigma);	//y_i	default codeword:00000~
+				Q[i] = input(0, sigma);	//y_i	default codeword:00000~
 				Q[i] = 2 * Q[i] / sigma / sigma;
-				printf("%.6lf\t", Q[i]);
+				//printf("%.6lf\t", Q[i]);
 			}
 			printf("\n\n");
 			for (i = 0; i < cNum; i++)
@@ -116,15 +131,15 @@ int main()
 				else
 					binary[i] = 0;
 			}
-			printf(" %dth iteration:\n", count_iteration);
-			
+			//printf(" %dth iteration:\n", count_iteration);
+			/*
 			for (i = 0; i < vNum; i++)
 				printf("%.6lf\t", Q[i]);
 			printf("\n");
 			for (i = 0; i < vNum; i++)
 				printf("%d\t\t", binary[i]);
 			printf("\n");
-			
+			*/
 
 			/*--------------check the algorithm ending condition--------------*/
 			if (end_condition_check(cNum, cWeight, binary, V))	//check if cH^{T}==0
@@ -139,13 +154,13 @@ int main()
 		}
 		/*---------------end iteration step-------------------*/
 
-		printf("--------------algorithm ends--------------\n\n");
-		
+		//printf("--------------algorithm ends--------------\n\n");
+		/*
 		printf("the estimated codeword:\n");
 		for (i = 0; i < vNum; i++)
 			printf("%d  ", binary[i]);
 		printf("\n\n");
-		
+		*/
 		n = bit_error_count(vNum, binary);
 		bit_error_rate += n;
 		if (n)		//if n is not 0, then the estimated codeword is wrong
@@ -153,8 +168,8 @@ int main()
 	}
 	bit_error_rate = bit_error_rate / loopNum / vNum;
 	frame_error_rate = frame_error_rate / loopNum;
-	//er[0] = bit_error_rate;
-	//er[1] = frame_error_rate;
+	er[0] = bit_error_rate;
+	er[1] = frame_error_rate;
 
 	//free the pointers and end
 	freee(cNum, vWeight, cWeight, V, Q, r, prev_r, binary);

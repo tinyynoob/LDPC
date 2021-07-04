@@ -1,11 +1,36 @@
 #include"Header.h"
+#include"rand.h"
 
-
-void main()
+int main()
 {
-	int loopNum = 1;
-	int max_iteration = 16;
-	double SNR_db = 5;
+	FILE* f;
+	int i;
+	double* er;
+	int loopNum[] = { 150000};
+	int max_iteration[] = { 16 };
+	double SNR_db[] = { 1.8 };
+	rand_init();
+	er = malloc(sizeof(double) * 2);	//error_rate	er[0]=BER, er[1]=FER
+	f = fopen("./analysis.csv", "w");
+	fprintf(f, "#loop,max_iteration,SNR(db),BER,FER\n");
+	fclose(f);
+	for (i = 0; i < sizeof(loopNum) / sizeof(int); i++)
+	{
+		f = fopen("./analysis.csv", "a");
+		printf("processing SNR number %d\n", i + 1);
+		min_sum_scaled(loopNum[i], max_iteration[i], SNR_db[i], er);
+		fprintf(f, "%d,%d,%lf,%lf,%lf\n", loopNum[i], max_iteration[i], SNR_db[i], er[0], er[1]);	//output data
+		fclose(f);
+	}
+
+	free(er);
+	system("pause");
+	return 0;
+}
+
+
+void min_sum_scaled(int loopNum, int max_iteration, double SNR_db, double* er)
+{
 	FILE* f;
 	int i, j, n, count_iteration, count_loop;
 	int vNum, cNum, * vWeight, * cWeight, ** V;		//to store the Tanner graph
@@ -14,13 +39,13 @@ void main()
 	double bit_error_rate, frame_error_rate;
 	double sigma;
 
-	printf("LDPC scaled min-sum\n\n");
+	//printf("LDPC scaled min-sum\n\n");
 	/*---------------------read alist and build the Tanner graph----------------------*/
 	{
-		f = fopen("./alist.txt", "r");
+		f = fopen("./Gallager_3_6.txt", "r");
 		if (!fscanf(f, "%d %d", &vNum, &cNum))
 			printf("ERROR\n");
-		printf("%d %d\n", vNum, cNum);
+		//printf("%d %d\n", vNum, cNum);
 
 		fscanf(f, "%d", &n);	//no use
 		fscanf(f, "%d", &n);	//no use
@@ -65,27 +90,18 @@ void main()
 	bit_error_rate = 0;
 	frame_error_rate = 0;
 	sigma = sqrt(pow(10, -SNR_db / 10));	//compute sigma from SNR_db where we assume mean_of_signal_energy = 1
-	sigma = sqrt(0.5);
 
 	for (count_loop = 0; count_loop < loopNum; count_loop++)
 	{
-		printf("%dth loop\n", count_loop);
+		//printf("%dth loop\n", count_loop);
 		/*---------------initialization step-------------------*/
 		{
-			Q[0] = -0.6;
-			Q[1] = 3.2;
-			Q[2] = -3.6;
-			Q[3] = 2.8;
-			Q[4] = 2;
-			Q[5] = -4.4;
-			Q[6] = -1.6;
-			Q[7] = -4.8;
 			for (i = 0; i < vNum; i++)
 			{
-				//Q[i] = input(0, sigma);	//y_i	default codeword:00000~
-				printf("%.6lf\t", Q[i]);
+				Q[i] = input(0, sigma);	//y_i	default codeword:00000~
+				//printf("%.6lf\t", Q[i]);
 			}
-			printf("\n\n");
+			//printf("\n\n");
 			for (i = 0; i < cNum; i++)
 				for (j = 0; j < cWeight[i]; j++)
 				{
@@ -112,15 +128,15 @@ void main()
 				else
 					binary[i] = 0;
 			}
-			printf(" %dth iteration:\n", count_iteration);
-			
+			//printf(" %dth iteration:\n", count_iteration);
+			/*
 			for (i = 0; i < vNum; i++)
 				printf("%.6lf\t", Q[i]);
 			printf("\n");
 			for (i = 0; i < vNum; i++)
 				printf("%d\t\t", binary[i]);
 			printf("\n");
-			
+			*/
 
 			/*--------------check the algorithm ending condition--------------*/
 			if (end_condition_check(cNum, cWeight, binary, V))	//check if cH^{T}==0
@@ -135,13 +151,13 @@ void main()
 		}
 		/*---------------end iteration step-------------------*/
 
-		printf("--------------algorithm ends--------------\n\n");
-		
+		//printf("--------------algorithm ends--------------\n\n");
+		/*
 		printf("the estimated codeword:\n");
 		for (i = 0; i < vNum; i++)
 			printf("%d  ", binary[i]);
 		printf("\n\n");
-		
+		*/
 		n = bit_error_count(vNum, binary);
 		bit_error_rate += n;
 		if (n)		//if n is not 0, then the estimated codeword is wrong
@@ -149,8 +165,8 @@ void main()
 	}
 	bit_error_rate = bit_error_rate / loopNum / vNum;
 	frame_error_rate = frame_error_rate / loopNum;
-	//er[0] = bit_error_rate;
-	//er[1] = frame_error_rate;
+	er[0] = bit_error_rate;
+	er[1] = frame_error_rate;
 
 	//free the pointers and end
 	freee(cNum, vWeight, cWeight, V, Q, r, prev_r, binary);
@@ -188,14 +204,14 @@ void rUpdate(int start, int weight, double* Q, double** r, double** prev_r, int*
 	{
 		sign = 1;
 		flag = 1;
-		min = 0;	//to ensure the c-node with only one edge correct
+		min;	//to ensure the c-node with only one edge correct
 		for (j = 0; j < weight; j++)
 		{
 			if (j == i)
 				continue;
 			q = Q[V[start][j]] - prev_r[start][j];
 			sign *= sgn(q);
-			if (flag == 1)		//first
+			if (flag)		//first
 			{
 				min = fabs(q);
 				flag = 0;
@@ -203,7 +219,7 @@ void rUpdate(int start, int weight, double* Q, double** r, double** prev_r, int*
 			else if (fabs(q) < min)
 				min = fabs(q);
 		}
-		r[start][i] = (double)sign * min *0.75;
+		r[start][i] = (double)sign * min * 0.75;
 	}
 }
 

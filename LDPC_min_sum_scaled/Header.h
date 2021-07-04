@@ -4,7 +4,7 @@
 #include<stdlib.h>
 #include<math.h>
 
-//void min_sum(int, int, double, double*);
+void min_sum_scaled(int, int, double, double*);
 short sgn(double x);
 double input(short, double);
 void rUpdate(int, int, double*, double**, double**, int**);
